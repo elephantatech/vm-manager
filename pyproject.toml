@@ -1,0 +1,21 @@
+[project]
+name = "vm-manager"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11.3"
+dependencies = [
+    "cryptography>=47.0.0",
+    "fastapi>=0.136.1",
+    "passlib>=1.7.4",
+    "pydantic>=2.13.3",
+    "python-jose[cryptography]>=3.5.0",
+    "python-json-logger>=4.1.0",
+    "python-multipart>=0.0.26",
+    "uvicorn>=0.46.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+]
