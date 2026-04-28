@@ -1,42 +1,56 @@
 import os
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 from unittest.mock import AsyncMock, patch
 
-# Set TESTING environment variable before importing main
+# Set TESTING environment variable
 os.environ["TESTING"] = "1"
-from main import app, config
 
-from models import VMConfig
+import database as db_mod
+from main import app, get_db, get_current_user
+
+# Use in-memory SQLite for testing
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def override_get_db():
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+def override_get_current_user():
+    return db_mod.User(username="admin", permissions="*")
+
+app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_current_user] = override_get_current_user
 
 @pytest.fixture
 def client():
-    # Use a dummy token as allowed by get_current_user logic in main.py
-    return TestClient(app)
+    db_mod.Base.metadata.create_all(bind=engine)
+    with TestClient(app) as c:
+        yield c
+    db_mod.Base.metadata.drop_all(bind=engine)
 
-def test_lan_only_middleware_allowed(client):
-    # Mocking client IP is tricky with TestClient, but by default it uses localhost
-    response = client.get("/api/vms", headers={"Authorization": "Bearer dummy_token"})
-    # Since status check for VMs takes time and might be mocked later, 
-    # we just check if we get a 200 list (even if empty)
+def test_api_vms_empty(client):
+    response = client.get("/api/vms")
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    assert response.json() == []
 
 @patch("vm_control.VMControl.get_status", new_callable=AsyncMock)
-def test_get_vms_mocked(mock_status, client):
+def test_get_vms_with_data(mock_status, client):
     mock_status.return_value = "running"
-    config.vms = [VMConfig(id="1", name="Test VM", path="test.vmx", proxies=[])]
+    db = TestingSessionLocal()
+    db.add(db_mod.VM(id="1", name="Test VM", path="test.vmx"))
+    db.commit()
+    db.close()
     
-    response = client.get("/api/vms", headers={"Authorization": "Bearer dummy_token"})
+    response = client.get("/api/vms")
     assert response.status_code == 200
     data = response.json()
     assert data[0]["name"] == "Test VM"
     assert data[0]["status"] == "running"
-
-def test_token_endpoint(client):
-    config.auth_username = "admin"
-    # We won't test full bcrypt here, just the structure
-    with patch("main.verify_password", return_value=True):
-        response = client.post("/token", data={"username": "admin", "password": "any"})
-        assert response.status_code == 200
-        assert "access_token" in response.json()

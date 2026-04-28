@@ -41,7 +41,36 @@
         <div id="main-view" class="hidden">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h1>VMware Web Manager</h1>
-                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" onclick="showSettings()">Settings / Profile</button>
+                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                </div>
+            </div>
+
+            <div id="settings-view" class="card hidden">
+                <h3>Account & Security</h3>
+                <div style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
+                    <h4>Change Password</h4>
+                    <input type="password" id="old-pass" placeholder="Old Password">
+                    <input type="password" id="new-pass" placeholder="New Password">
+                    <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+                </div>
+
+                <div id="admin-user-section" class="hidden">
+                    <h4>User Management (Admin Only)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 400px;">
+                        <input type="text" id="new-user-name" placeholder="Username">
+                        <input type="password" id="new-user-pass" placeholder="Password">
+                        <select id="new-user-perms" style="padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                            <option value="admin">Admin (All Permissions)</option>
+                            <option value="vm_manager">VM Manager (Add/Scan/Control/Ports)</option>
+                            <option value="vm_operator">VM Operator (Control/Toggle Ports)</option>
+                            <option value="viewer">Viewer (Read Only)</option>
+                        </select>
+                        <button class="btn btn-success" onclick="createUser()">Create User</button>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" style="margin-top: 15px;" onclick="hideSettings()">Back to Dashboard</button>
             </div>
 
             <div class="card">
@@ -114,6 +143,7 @@
                 const data = await response.json();
                 token = data.access_token;
                 localStorage.setItem('token', token);
+                localStorage.setItem('permissions', data.permissions);
                 showMain();
             } else {
                 document.getElementById('login-error').innerText = 'Login failed. Check credentials.';
@@ -278,6 +308,47 @@
                         <p><small>Total Used Ports: ${registry.used_ports.length}</small></p>
                     `;
                 }
+            }
+        }
+
+        function showSettings() {
+            document.getElementById('settings-view').classList.remove('hidden');
+            // Check if current user is admin to show user management
+            // We store permissions in localStorage after login
+            const perms = localStorage.getItem('permissions');
+            if (perms === '*' || perms.includes('user:manage')) {
+                document.getElementById('admin-user-section').classList.remove('hidden');
+            }
+        }
+
+        function hideSettings() {
+            document.getElementById('settings-view').classList.add('hidden');
+        }
+
+        async function changePassword() {
+            const old_password = document.getElementById('old-pass').value;
+            const new_password = document.getElementById('new-pass').value;
+            const res = await api('/api/user/change-password', 'POST', { old_password, new_password });
+            if (res.status === 'success') {
+                alert('Password updated successfully!');
+                document.getElementById('old-pass').value = '';
+                document.getElementById('new-pass').value = '';
+            } else {
+                alert('Update failed: ' + (res.detail || 'Unknown error'));
+            }
+        }
+
+        async function createUser() {
+            const username = document.getElementById('new-user-name').value;
+            const password = document.getElementById('new-user-pass').value;
+            const permissions = document.getElementById('new-user-perms').value;
+            const res = await api('/api/users', 'POST', { username, password, permissions });
+            if (res.status === 'success') {
+                alert('User created successfully!');
+                document.getElementById('new-user-name').value = '';
+                document.getElementById('new-user-pass').value = '';
+            } else {
+                alert('Creation failed: ' + (res.detail || 'Unknown error'));
             }
         }
 
