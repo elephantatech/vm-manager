@@ -46,10 +46,25 @@
 
             <div class="card">
                 <h3>Add New VM</h3>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                     <input type="text" id="new-vm-name" placeholder="VM Name (e.g. Ubuntu Server)">
                     <input type="text" id="new-vm-path" placeholder="Full path to .vmx file">
                     <button class="btn btn-primary" onclick="addVM()">Add VM</button>
+                </div>
+                <button class="btn btn-secondary" onclick="scanVMs()">Scan for VMs in common paths</button>
+                <div id="scan-results" class="hidden" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                    <h4>Discovered VMs</h4>
+                    <div id="discovered-list"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3>Port Registry</h3>
+                    <button class="btn btn-secondary" onclick="loadRegistry()">Refresh Registry</button>
+                </div>
+                <div id="registry-view" style="margin-top: 10px;">
+                    <p>Click refresh to see active port allocations.</p>
                 </div>
             </div>
 
@@ -201,6 +216,69 @@
         async function deleteProxy(proxyId) {
             await api(`/api/proxies/${proxyId}`, 'DELETE');
             loadVMs();
+        }
+
+        async function scanVMs() {
+            const results = await api('/api/vms/scan', 'POST');
+            const container = document.getElementById('discovered-list');
+            const view = document.getElementById('scan-results');
+            
+            if (results && Array.isArray(results)) {
+                if (results.length > 0) {
+                    view.classList.remove('hidden');
+                    container.innerHTML = results.map(vm => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 4px;">
+                            <span><strong>${vm.name}</strong><br><small>${vm.path}</small></span>
+                            <button class="btn btn-success" onclick="addDiscoveredVM('${vm.name}', '${vm.path.replace(/\\/g, '\\\\')}')">Add</button>
+                        </div>
+                    `).join('');
+                } else {
+                    alert('No new VMs discovered. They may already be added or not found in known paths.');
+                    view.classList.add('hidden');
+                }
+            } else {
+                alert('Scan failed: ' + (results.detail || 'Unknown error'));
+                view.classList.add('hidden');
+            }
+        }
+
+        async function addDiscoveredVM(name, path) {
+            await api(`/api/vms?name=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`, 'POST');
+            document.getElementById('scan-results').classList.add('hidden');
+            loadVMs();
+        }
+
+        async function loadRegistry() {
+            const registry = await api('/api/registry');
+            const container = document.getElementById('registry-view');
+            
+            if (registry) {
+                if (registry.active_proxies.length === 0) {
+                    container.innerHTML = '<p>No active port allocations.</p>';
+                } else {
+                    container.innerHTML = `
+                        <table style="font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th>Host Port</th>
+                                    <th>VM ID</th>
+                                    <th>VM Port</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${registry.active_proxies.map(p => `
+                                    <tr>
+                                        <td>${p.port}</td>
+                                        <td>${p.vm_id.substring(0, 8)}...</td>
+                                        <td>${p.vm_port}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <p><small>Total Used Ports: ${registry.used_ports.length}</small></p>
+                    `;
+                }
+            }
         }
 
         if (token) showMain();

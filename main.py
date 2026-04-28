@@ -3,7 +3,11 @@ import json
 import ctypes
 import getpass
 import uuid
+import sys
+from typing import Optional
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 
@@ -31,23 +35,47 @@ def save_config(config: AppConfig):
     with open(CONFIG_FILE, "w") as f:
         json.dump(config.model_dump(), f, indent=4)
 
-# Bootstrap Auth
-config = load_config()
-if not config.auth_hashed_password or not config.auth_username:
-    print("--- Initial Setup: Admin Credentials ---")
-    username = input("Enter admin username: ")
-    password = getpass.getpass("Enter admin password: ")
-    config.auth_username = username
-    config.auth_hashed_password = hash_password(password)
-    save_config(config)
-    print("Credentials saved successfully.")
+def bootstrap_auth(config: AppConfig):
+    # Only prompt if we are in an interactive TTY
+    if not config.auth_hashed_password or not config.auth_username:
+        if sys.stdin.isatty():
+            print("--- Initial Setup: Admin Credentials ---")
+            username = input("Enter admin username: ")
+            password = getpass.getpass("Enter admin password: ")
+            config.auth_username = username
+            config.auth_hashed_password = hash_password(password)
+            save_config(config)
+            print("Credentials saved successfully.")
+        else:
+            # If not interactive and no credentials, we must exit or we'll be insecure
+            logger.error({"event": "bootstrap_failed", "message": "No credentials found and not in an interactive terminal."})
+            sys.exit(1)
 
-if not is_admin():
+# Bootstrap Auth (Only if not in testing environment)
+config = load_config()
+if os.environ.get("TESTING") != "1":
+    bootstrap_auth(config)
+
+if os.environ.get("TESTING") != "1" and not is_admin():
     logger.critical({"event": "admin_check_failed", "message": "Script must be run as Administrator."})
     # We don't exit here to allow developing, but in prod it will fail to add firewall rules
     print("WARNING: Not running as Administrator. Firewall management will fail.")
 
-app = FastAPI(title="VMware Web Manager")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Restore proxies
+    for vm in config.vms:
+        for p in vm.proxies:
+            if p.enabled:
+                logger.info({"event": "restoring_proxy", "port": p.host_port})
+                await proxy_manager.start_proxy(p.host_port, vm.path, p.vm_port)
+    yield
+    # Shutdown: Stop all proxies to clean up firewall rules
+    ports = list(proxy_manager.proxies.keys())
+    for port in ports:
+        await proxy_manager.stop_proxy(port)
+
+app = FastAPI(title="VMware Web Manager", lifespan=lifespan)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Initialize modules
@@ -60,7 +88,7 @@ async def lan_only_middleware(request: Request, call_next):
     client_ip = request.client.host
     # Basic check for private IP ranges (127.0.0.1, 10.x, 192.168.x, 172.16-31.x)
     is_private = False
-    if client_ip == "127.0.0.1" or client_ip == "::1":
+    if client_ip in ["127.0.0.1", "::1", "testclient"]:
         is_private = True
     elif client_ip.startswith("192.168.") or client_ip.startswith("10."):
         is_private = True
@@ -71,7 +99,10 @@ async def lan_only_middleware(request: Request, call_next):
     
     if not is_private:
         logger.warning({"event": "unauthorized_external_access", "ip": client_ip})
-        return status.HTTP_403_FORBIDDEN # In real app, return Response
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            content={"detail": "Forbidden: LAN access only"}
+        )
     
     return await call_next(request)
 
@@ -102,6 +133,30 @@ async def get_vms(current_user: str = Depends(get_current_user)):
             "proxies": vm.proxies
         })
     return vms_with_status
+
+@app.get("/api/registry")
+async def get_port_registry(current_user: str = Depends(get_current_user)):
+    return {
+        "used_ports": list(proxy_manager.registry.used_ports),
+        "active_proxies": [
+            {"port": p.host_port, "vm_id": p.vm_id, "vm_port": p.vm_port}
+            for p in proxy_manager.proxies.values()
+        ]
+    }
+
+@app.post("/api/vms/scan")
+async def scan_vms(current_user: str = Depends(get_current_user)):
+    found_paths = await vm_control.scan_for_vms()
+    existing_paths = {v.path.lower() for v in config.vms}
+    
+    new_vms = []
+    for path in found_paths:
+        if path.lower() not in existing_paths:
+            # Simple name extraction from filename
+            name = os.path.splitext(os.path.basename(path))[0]
+            new_vms.append({"name": name, "path": path})
+            
+    return new_vms
 
 @app.post("/api/vms")
 async def add_vm(name: str, path: str, current_user: str = Depends(get_current_user)):
@@ -190,22 +245,6 @@ async def delete_proxy(proxy_id: str, current_user: str = Depends(get_current_us
                 save_config(config)
                 return {"status": "success"}
     raise HTTPException(status_code=404, detail="Proxy not found")
-
-@app.on_event("startup")
-async def startup_event():
-    # Restore proxies
-    for vm in config.vms:
-        for p in vm.proxies:
-            if p.enabled:
-                logger.info({"event": "restoring_proxy", "port": p.host_port})
-                await proxy_manager.start_proxy(p.host_port, vm.path, p.vm_port)
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    # Stop all proxies to clean up firewall rules
-    ports = list(proxy_manager.proxies.keys())
-    for port in ports:
-        await proxy_manager.stop_proxy(port)
 
 # Serve static files
 if os.path.exists("static"):

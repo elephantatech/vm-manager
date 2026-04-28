@@ -1,0 +1,148 @@
+{"asctime": "2026-04-27 13:56:56,845", "name": "vm_manager", "levelname": "WARNING", "message": "", "event": "unauthorized_external_access", "ip": "testclient"}
+{"asctime": "2026-04-27 13:56:57,015", "name": "vm_manager", "levelname": "WARNING", "message": "", "event": "unauthorized_external_access", "ip": "testclient"}
+{"asctime": "2026-04-27 13:56:57,091", "name": "vm_manager", "levelname": "WARNING", "message": "", "event": "unauthorized_external_access", "ip": "testclient"}
+{"asctime": "2026-04-27 13:56:57,173", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_add_rule", "command": "netsh advfirewall firewall add rule name=\"VMProxy_8080\" dir=in action=allow protocol=TCP localport=8080 remoteip=localsubnet"}
+{"asctime": "2026-04-27 13:56:57,173", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_started", "port": 8080, "vm_id": "vm1", "vm_port": 80}
+{"asctime": "2026-04-27 13:56:57,174", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_remove_rule", "command": "netsh advfirewall firewall delete rule name=\"VMProxy_8080\""}
+{"asctime": "2026-04-27 13:56:57,174", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_stopped", "port": 8080}
+{"asctime": "2026-04-27 13:56:57,265", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 13:56:57,267", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 13:56:57,267", "name": "vm_manager", "levelname": "ERROR", "message": "", "event": "vmrun_start_failed", "vmx": "test.vmx", "error": "Some error"}
+{"asctime": "2026-04-27 13:56:57,269", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 13:56:57,270", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "getGuestIPAddress", "test.vmx"]}
+{"asctime": "2026-04-27 13:57:37,029", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_add_rule", "command": "netsh advfirewall firewall add rule name=\"VMProxy_8080\" dir=in action=allow protocol=TCP localport=8080 remoteip=localsubnet"}
+{"asctime": "2026-04-27 13:57:37,029", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_started", "port": 8080, "vm_id": "vm1", "vm_port": 80}
+{"asctime": "2026-04-27 13:57:37,030", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_remove_rule", "command": "netsh advfirewall firewall delete rule name=\"VMProxy_8080\""}
+{"asctime": "2026-04-27 13:57:37,030", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_stopped", "port": 8080}
+{"asctime": "2026-04-27 13:57:37,100", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 13:57:37,102", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 13:57:37,102", "name": "vm_manager", "levelname": "ERROR", "message": "", "event": "vmrun_start_failed", "vmx": "test.vmx", "error": "Some error"}
+{"asctime": "2026-04-27 13:57:37,104", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 13:57:37,105", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "getGuestIPAddress", "test.vmx"]}
+{"asctime": "2026-04-27 13:58:06,958", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_add_rule", "command": "netsh advfirewall firewall add rule name=\"VMProxy_8080\" dir=in action=allow protocol=TCP localport=8080 remoteip=localsubnet"}
+{"asctime": "2026-04-27 13:58:06,959", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_started", "port": 8080, "vm_id": "vm1", "vm_port": 80}
+{"asctime": "2026-04-27 13:58:06,959", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_remove_rule", "command": "netsh advfirewall firewall delete rule name=\"VMProxy_8080\""}
+{"asctime": "2026-04-27 13:58:06,960", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_stopped", "port": 8080}
+{"asctime": "2026-04-27 13:58:07,440", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 13:58:07,442", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 13:58:07,442", "name": "vm_manager", "levelname": "ERROR", "message": "", "event": "vmrun_start_failed", "vmx": "test.vmx", "error": "Some error"}
+{"asctime": "2026-04-27 13:58:07,444", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 13:58:07,446", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "getGuestIPAddress", "test.vmx"]}
+{"asctime": "2026-04-27 14:06:18,269", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_add_rule", "command": "netsh advfirewall firewall add rule name=\"VMProxy_8080\" dir=in action=allow protocol=TCP localport=8080 remoteip=localsubnet"}
+{"asctime": "2026-04-27 14:06:18,270", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_started", "port": 8080, "vm_id": "vm1", "vm_port": 80}
+{"asctime": "2026-04-27 14:06:18,270", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "firewall_remove_rule", "command": "netsh advfirewall firewall delete rule name=\"VMProxy_8080\""}
+{"asctime": "2026-04-27 14:06:18,270", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "proxy_stopped", "port": 8080}
+{"asctime": "2026-04-27 14:06:18,774", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 14:06:18,776", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "test.vmx", "nogui"]}
+{"asctime": "2026-04-27 14:06:18,776", "name": "vm_manager", "levelname": "ERROR", "message": "", "event": "vmrun_start_failed", "vmx": "test.vmx", "error": "Some error"}
+{"asctime": "2026-04-27 14:06:18,778", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 14:06:18,779", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "getGuestIPAddress", "test.vmx"]}
+{"asctime": "2026-04-27 14:13:11,049", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 14:13:47,245", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 14:13:47,613", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:16:21,185", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:16:21,697", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:16:21,880", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:17:25,593", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:17:26,015", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:17:26,288", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:17:26,480", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:24:26,241", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:24:26,241", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:24:26,530", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:24:26,776", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:24:26,776", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:24:26,980", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:24:26,980", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:24:27,033", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:24:27,227", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:25:49,936", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:25:49,936", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:25:50,214", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:25:50,798", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:25:50,798", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:25:51,053", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:25:51,410", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:25:51,410", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:25:51,673", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:26:01,705", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:26:01,705", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:26:01,995", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:26:03,522", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:26:03,523", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:26:03,790", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:26:04,076", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:26:04,076", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:26:04,339", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:26:42,302", "name": "vm_manager", "levelname": "CRITICAL", "message": "Script must be run as Administrator.", "event": "admin_check_failed"}
+{"asctime": "2026-04-27 15:26:45,286", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:26:45,286", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:26:45,569", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:27:34,320", "name": "vm_manager", "levelname": "CRITICAL", "message": "Script must be run as Administrator.", "event": "admin_check_failed"}
+{"asctime": "2026-04-27 15:27:40,918", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:27:40,918", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:28:01,667", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:28:01,667", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:28:44,663", "name": "vm_manager", "levelname": "CRITICAL", "message": "Script must be run as Administrator.", "event": "admin_check_failed"}
+{"asctime": "2026-04-27 15:29:06,195", "name": "vm_manager", "levelname": "CRITICAL", "message": "Script must be run as Administrator.", "event": "admin_check_failed"}
+{"asctime": "2026-04-27 15:29:20,181", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:29:20,181", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:29:20,431", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 2}
+{"asctime": "2026-04-27 15:29:20,432", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "reading_inventory", "path": "C:\\Users\\vmmis\\AppData\\Roaming\\VMware\\inventory.vmls"}
+{"asctime": "2026-04-27 15:29:20,433", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scanning_directory", "path": "C:\\Users\\vmmis\\Documents\\Virtual Machines"}
+{"asctime": "2026-04-27 15:29:20,434", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_completed", "total_found": 2}
+{"asctime": "2026-04-27 15:30:07,741", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:30:07,741", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:08,014", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:30:08,015", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "reading_inventory", "path": "C:\\Users\\vmmis\\AppData\\Roaming\\VMware\\inventory.vmls"}
+{"asctime": "2026-04-27 15:30:08,015", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scanning_directory", "path": "C:\\Users\\vmmis\\Documents\\Virtual Machines"}
+{"asctime": "2026-04-27 15:30:08,016", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_completed", "total_found": 2}
+{"asctime": "2026-04-27 15:30:12,372", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:15,926", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:30:15,926", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:16,315", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 0}
+{"asctime": "2026-04-27 15:30:16,315", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "reading_inventory", "path": "C:\\Users\\vmmis\\AppData\\Roaming\\VMware\\inventory.vmls"}
+{"asctime": "2026-04-27 15:30:16,316", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scanning_directory", "path": "C:\\Users\\vmmis\\Documents\\Virtual Machines"}
+{"asctime": "2026-04-27 15:30:16,317", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_completed", "total_found": 2}
+{"asctime": "2026-04-27 15:30:18,169", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:18,437", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:29,092", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "C:\\Users\\vmmis\\Documents\\Virtual Machines\\bam\\bam.vmx", "nogui"]}
+{"asctime": "2026-04-27 15:30:29,423", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:29,705", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:30,950", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "start", "C:\\Users\\vmmis\\Documents\\Virtual Machines\\popos\\popos.vmx", "nogui"]}
+{"asctime": "2026-04-27 15:30:31,269", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:30:31,555", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:46,277", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:46,576", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:47,770", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:48,069", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:49,017", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:49,295", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:50,286", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:31:50,587", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:34:22,865", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:34:23,125", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:34:26,546", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_started"}
+{"asctime": "2026-04-27 15:34:26,546", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:34:26,786", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "live_scan_completed", "count": 2}
+{"asctime": "2026-04-27 15:34:26,787", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "reading_inventory", "path": "C:\\Users\\vmmis\\AppData\\Roaming\\VMware\\inventory.vmls"}
+{"asctime": "2026-04-27 15:34:26,787", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scanning_directory", "path": "C:\\Users\\vmmis\\Documents\\Virtual Machines"}
+{"asctime": "2026-04-27 15:34:26,788", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "scan_completed", "total_found": 2}
+{"asctime": "2026-04-27 15:34:33,080", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "reset", "C:\\Users\\vmmis\\Documents\\Virtual Machines\\bam\\bam.vmx", "soft"]}
+{"asctime": "2026-04-27 15:34:39,082", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:34:39,334", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:34:40,365", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:34:40,629", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:35:00,165", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "reset", "C:\\Users\\vmmis\\Documents\\Virtual Machines\\popos\\popos.vmx", "soft"]}
+{"asctime": "2026-04-27 15:40:00,456", "name": "vm_manager", "levelname": "ERROR", "message": "", "event": "vmrun_reset_failed", "vmx": "C:\\Users\\vmmis\\Documents\\Virtual Machines\\popos\\popos.vmx", "error": ""}
+{"asctime": "2026-04-27 15:41:34,502", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "stop", "C:\\Users\\vmmis\\Documents\\Virtual Machines\\popos\\popos.vmx", "soft"]}
+{"asctime": "2026-04-27 15:42:43,046", "name": "vm_manager", "levelname": "ERROR", "message": "", "event": "vmrun_stop_failed", "vmx": "C:\\Users\\vmmis\\Documents\\Virtual Machines\\popos\\popos.vmx", "error": ""}
+{"asctime": "2026-04-27 15:43:04,797", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:43:05,100", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:43:08,894", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "reset", "C:\\Users\\vmmis\\Documents\\Virtual Machines\\popos\\popos.vmx", "soft"]}
+{"asctime": "2026-04-27 15:44:49,555", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:44:49,829", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:46:22,287", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:46:22,604", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:46:23,712", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
+{"asctime": "2026-04-27 15:46:24,023", "name": "vm_manager", "levelname": "INFO", "message": "", "event": "vmrun_command", "args": ["-T", "ws", "list"]}
