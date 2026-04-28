@@ -100,7 +100,7 @@ class TCPProxy:
     async def _add_firewall_rule(self):
         rule_name = f"VMProxy_{self.host_port}"
         cmd = f'netsh advfirewall firewall add rule name="{rule_name}" dir=in action=allow protocol=TCP localport={self.host_port} remoteip=localsubnet'
-        logger.info({"event": "firewall_add_rule", "command": cmd})
+        logger.debug({"event": "firewall_add_rule", "command": cmd})
         process = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -111,7 +111,7 @@ class TCPProxy:
     async def _remove_firewall_rule(self):
         rule_name = f"VMProxy_{self.host_port}"
         cmd = f'netsh advfirewall firewall delete rule name="{rule_name}"'
-        logger.info({"event": "firewall_remove_rule", "command": cmd})
+        logger.debug({"event": "firewall_remove_rule", "command": cmd})
         process = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,

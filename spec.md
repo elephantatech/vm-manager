@@ -1,56 +1,60 @@
 # VMware Web Manager - Technical Specification
 
 ## 1. Overview
-VMware Web Manager is a lightweight, secure orchestration layer for VMware Workstation/Player on Windows 11. it provides a Web UI to manage VM power states and dynamically expose VM services (like SSH, Web, or Databases) to the local network (LAN) using a TCP proxy and automated Windows Firewall management.
+VMware Web Manager is a lightweight, secure orchestration layer for VMware Workstation/Player on Windows 11. It provides a Web UI to manage VM power states and dynamically expose VM services to the local network (LAN) using a TCP proxy and automated Windows Firewall management.
 
 ## 2. System Architecture
 - **Language:** Python 3.11+ (Managed via `uv`)
 - **Web Framework:** FastAPI (Asynchronous)
+- **Database:** SQLite via SQLAlchemy (Persistent Storage)
 - **VM Orchestration:** VMware `vmrun.exe` utility.
 - **Proxy Engine:** Asynchronous Python TCP forwarder.
-- **Security:** JWT-based Authentication + Windows Defender Firewall automation.
+- **Security:** JWT-based Authentication + Role-Based Access Control (RBAC).
 - **Frontend:** Single Page Application (SPA) using Vanilla JavaScript, HTML5, and CSS3.
-- **Storage:** File-based JSON storage (`config.json`).
-- **Hosting:** Native Windows Task Scheduler (running as `SYSTEM`).
+- **Hosting:** Native Windows Task Scheduler (running in **User Context**).
 
 ## 3. Core Components
 
 ### 3.1 VM Control Module (`vm_control.py`)
 Interfaces with VMware via `asyncio.create_subprocess_exec`.
-- **Capabilities:** Start (headless), Stop (soft), Restart (soft), Status Check, and Guest IP Resolution.
-- **Dynamic IP Resolution:** Uses `getGuestIPAddress` to handle VMs with DHCP addresses.
+- **Robust Power Control:** Implements "soft" operations (Shutdown/Restart) with an automatic fallback to "hard" (Power Off/Reset) if VMware Tools is missing.
+- **Multi-Layer Discovery:** 
+    1. **Live:** Scans active processes via `vmrun list`.
+    2. **Inventory:** Parses official VMware `inventory.vmls` files across all user profiles.
+    3. **Filesystem:** Fallback recursive scan of common "Virtual Machines" directories.
 
 ### 3.2 TCP Proxy & Port Registry (`proxy.py`)
-- **TCP Forwarder:** High-performance asynchronous pipe between host ports and guest ports.
-- **Port Registry:** Prevents host port collisions and verifies port availability before binding.
-- **Firewall Integration:** Automatically executes `netsh advfirewall` commands to open/close ports. Rules are restricted to `remoteip=localsubnet` to prevent exposure beyond the LAN.
+- **TCP Forwarder:** Asynchronous pipe between host ports and guest ports.
+- **Port Registry:** Manages host port allocations to prevent collisions.
+- **Firewall Integration:** Executes `netsh advfirewall` commands restricted to `remoteip=localsubnet`.
 
-### 3.3 Security & Authentication (`security.py`, `main.py`)
-- **Authentication:** Password hashing using `Passlib` (BCrypt) and session management via JWT (`python-jose`).
-- **LAN Restriction:** Middleware validates that incoming HTTP requests originate from private IP ranges (127.0.0.1, 192.168.x.x, 10.x.x.x, etc.).
-- **Privilege Validation:** On startup, the system verifies Administrative rights using `ctypes`.
+### 3.3 Security & RBAC (`database.py`, `main.py`)
+- **Authentication:** Password hashing using `Passlib` (BCrypt).
+- **RBAC System:** Granular permissions (e.g., `vm:start`, `proxy:create`) and predefined roles:
+    - `admin`: Full access (`*`).
+    - `vm_manager`: Manage VMs and Ports.
+    - `vm_operator`: Power control and port toggling.
+    - `viewer`: Read-only access.
+- **Bootstrapping:** Automatically creates a default `admin` / `admin` account if no users exist.
 
 ### 3.4 Logging (`logger_config.py`)
-- **Format:** Structured JSON logging for machine readability.
-- **Destination:** `vm_manager.log`.
-- **Captured Data:** API requests, `vmrun` command outputs, firewall changes, and proxy connection errors.
+- **Format:** Structured JSON logging.
+- **Level Control:** Default `WARNING`, configurable via `LOG_LEVEL` env var.
 
 ## 4. API Specification
 
 | Endpoint | Method | Description |
 | :--- | :--- | :--- |
-| `/token` | POST | Authenticate and receive JWT token. |
-| `/api/vms` | GET | List all managed VMs and their current statuses. |
-| `/api/vms` | POST | Register a new VM by providing `.vmx` path and name. |
-| `/api/vms/{id}` | DELETE | Remove a VM from management. |
-| `/api/vms/{id}/start` | POST | Power on the virtual machine (Headless). |
-| `/api/vms/{id}/stop` | POST | Soft shutdown of the virtual machine. |
-| `/api/vms/{id}/restart`| POST | Soft reboot of the virtual machine. |
-| `/api/proxies` | POST | Create a new TCP proxy rule for a specific VM. |
-| `/api/proxies/{id}/toggle`| PUT | Enable/Disable a proxy rule (opens/closes firewall). |
-| `/api/proxies/{id}` | DELETE | Remove a proxy rule configuration. |
+| `/token` | POST | Authenticate and receive JWT token + permissions. |
+| `/api/vms` | GET | List managed VMs and current statuses. |
+| `/api/vms/scan` | POST | Discovery scan across live, inventory, and filesystem. |
+| `/api/vms/{id}/{action}` | POST | Start, Stop, or Restart with fallback logic. |
+| `/api/registry` | GET | View all host port mappings. |
+| `/api/proxies` | POST | Create a new TCP proxy rule. |
+| `/api/user/change-password`| POST | Change the currently logged-in user's password. |
+| `/api/users` | POST | Create a new user with specific permissions (Admin only). |
 
 ## 5. Deployment Model
 - **Process Management:** Hosted as a "Highest Privilege" task in Windows Task Scheduler.
-- **Lifecycle:** Starts at system boot (`ONSTART`), running in the background under the `SYSTEM` account.
-- **Dependencies:** Managed via `uv` for reproducible environments and `ruff` for code quality.
+- **User Context:** Runs under the **currently logged-on user** to ensure access to the hypervisor session.
+- **Lifecycle:** Starts at system boot (`ONSTART`) with `-WindowStyle Hidden`.
