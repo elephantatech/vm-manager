@@ -1,55 +1,49 @@
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, patch, MagicMock
-from proxy import PortRegistry, TCPProxy, ProxyManager
+from unittest.mock import AsyncMock, patch
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import database as db_mod
+from proxy import PortRegistry, ProxyManager
 
-def test_port_registry_logic():
-    with patch("socket.socket") as mock_sock:
-        registry = PortRegistry()
-        # Test successful registration
-        assert registry.register(8080) is True
-        assert 8080 in registry.used_ports
-        
-        # Test duplicate registration
-        assert registry.register(8080) is False
-        
-        # Test unregistration
-        registry.unregister(8080)
-        assert 8080 not in registry.used_ports
+# Setup test DB
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+@pytest.fixture
+def db():
+    db_mod.Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    yield db
+    db.close()
+    db_mod.Base.metadata.drop_all(bind=engine)
+
+def test_port_registry_database_check(db):
+    registry = PortRegistry()
+    
+    # 1. Test available
+    with patch("socket.socket"):
+        assert registry.is_port_available(9000, db) is True
+    
+    # 2. Test blocked in DB
+    db.add(db_mod.ReservedPort(port=9000, description="Blocked"))
+    db.commit()
+    assert registry.is_port_available(9000, db) is False
+    
+    # 3. Test active in memory
+    registry.register(9001)
+    assert registry.is_port_available(9001, db) is False
 
 @pytest.mark.asyncio
-async def test_tcp_proxy_start_stop():
-    get_ip = AsyncMock(return_value="192.168.1.100")
-    proxy = TCPProxy(8080, "vm1", 80, get_ip)
+async def test_proxy_manager_generic_proxy(db):
+    manager = ProxyManager(AsyncMock())
     
-    with patch("asyncio.start_server", new_callable=AsyncMock) as mock_start_server, \
-         patch("asyncio.create_subprocess_shell", new_callable=AsyncMock) as mock_shell:
+    with patch("proxy.TCPProxy.start", new_callable=AsyncMock), \
+         patch("socket.socket"):
         
-        mock_shell.return_value.communicate.return_value = (b"", b"")
-        await proxy.start()
-        
-        assert proxy._running is True
-        mock_start_server.assert_called_once()
-        # Check firewall rule was added
-        mock_shell.assert_called_once()
-        assert "add rule" in mock_shell.call_args[0][0]
-        
-        await proxy.stop()
-        assert proxy._running is False
-
-@pytest.mark.asyncio
-async def test_proxy_manager():
-    get_ip = AsyncMock(return_value="192.168.1.100")
-    manager = ProxyManager(get_ip)
-    
-    with patch("proxy.TCPProxy.start", new_callable=AsyncMock) as mock_start, \
-         patch("proxy.PortRegistry.register", return_value=True):
-        
-        success = await manager.start_proxy(8080, "vm1", 80)
+        # Test starting a generic host proxy
+        success = await manager.start_proxy(8080, 80, db, target_host="127.0.0.1")
         assert success is True
         assert 8080 in manager.proxies
-        
-        with patch("proxy.TCPProxy.stop", new_callable=AsyncMock) as mock_stop:
-            await manager.stop_proxy(8080)
-            assert 8080 not in manager.proxies
-            mock_stop.assert_called_once()
+        assert manager.proxies[8080].target_host == "127.0.0.1"

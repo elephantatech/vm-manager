@@ -1,5 +1,12 @@
-from security import hash_password, verify_password, create_access_token, SECRET_KEY, ALGORITHM
+from security import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    SECRET_KEY,
+    ALGORITHM,
+)
 from jose import jwt
+
 
 def test_password_hashing():
     password = "testpassword"
@@ -7,6 +14,7 @@ def test_password_hashing():
     assert hashed != password
     assert verify_password(password, hashed) is True
     assert verify_password("wrong", hashed) is False
+
 
 def test_token_creation():
     data = {"sub": "admin"}

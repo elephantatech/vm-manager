@@ -8,12 +8,14 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    permissions = Column(String, default="vm:read") # Comma separated permissions
+    permissions = Column(String, default="vm:read")  # Comma separated permissions
+
 
 class VM(Base):
     __tablename__ = "vms"
@@ -22,19 +24,29 @@ class VM(Base):
     path = Column(String)
     proxies = relationship("Proxy", back_populates="vm", cascade="all, delete-orphan")
 
+
 class Proxy(Base):
     __tablename__ = "proxies"
     id = Column(String, primary_key=True, index=True)
-    vm_id = Column(String, ForeignKey("vms.id"))
+    vm_id = Column(String, ForeignKey("vms.id"), nullable=True)
+    target_host = Column(String, nullable=True)  # For non-VM targets like 127.0.0.1
     host_port = Column(Integer)
     vm_port = Column(Integer)
     enabled = Column(Boolean, default=True)
     vm = relationship("VM", back_populates="proxies")
 
+
 class Setting(Base):
     __tablename__ = "settings"
     key = Column(String, primary_key=True, index=True)
     value = Column(String)
+
+
+class ReservedPort(Base):
+    __tablename__ = "reserved_ports"
+    port = Column(Integer, primary_key=True, index=True)
+    description = Column(String, nullable=True)
+
 
 def init_db():
     Base.metadata.create_all(bind=engine)

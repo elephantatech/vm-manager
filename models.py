@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class ProxyConfig(BaseModel):
     id: str
     vm_id: str
@@ -8,11 +9,13 @@ class ProxyConfig(BaseModel):
     vm_port: int
     enabled: bool = True
 
+
 class VMConfig(BaseModel):
     id: str
     name: str
     path: str
     proxies: List[ProxyConfig] = []
+
 
 class AppConfig(BaseModel):
     vmrun_path: str = r"C:\Program Files (x86)\VMware\VMware Workstation\vmrun.exe"

@@ -22,14 +22,15 @@
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
         .status-running { color: #2ecc71; font-weight: bold; }
         .status-stopped { color: #e74c3c; font-weight: bold; }
-        #login-form { max-width: 300px; margin: 100px auto; }
         input[type="text"], input[type="password"], input[type="number"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        .proxy-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-top: 1px solid #f9f9f9; }
+        .proxy-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f9f9f9; }
         .hidden { display: none; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Login View -->
         <div id="login-view" class="card">
             <h2>Login</h2>
             <input type="text" id="username" placeholder="Username">
@@ -38,6 +39,7 @@
             <p id="login-error" style="color: red;"></p>
         </div>
 
+        <!-- Main Dashboard View -->
         <div id="main-view" class="hidden">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <h1>VMware Web Manager</h1>
@@ -47,12 +49,15 @@
                 </div>
             </div>
 
+            <!-- Settings View -->
             <div id="settings-view" class="card hidden">
                 <h3>Account & Security</h3>
                 <div style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
                     <h4>Change Password</h4>
-                    <input type="password" id="old-pass" placeholder="Old Password">
-                    <input type="password" id="new-pass" placeholder="New Password">
+                    <div class="grid">
+                        <input type="password" id="old-pass" placeholder="Old Password">
+                        <input type="password" id="new-pass" placeholder="New Password">
+                    </div>
                     <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
                 </div>
 
@@ -73,32 +78,47 @@
                 <button class="btn btn-secondary" style="margin-top: 15px;" onclick="hideSettings()">Back to Dashboard</button>
             </div>
 
+            <!-- Generic Proxy Section -->
             <div class="card">
-                <h3>Add New VM</h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input type="text" id="new-vm-name" placeholder="VM Name (e.g. Ubuntu Server)">
-                    <input type="text" id="new-vm-path" placeholder="Full path to .vmx file">
+                <h3>Host Services (Local / Podman / Ollama)</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: end;">
+                    <div><label><small>Host Port</small></label><input type="number" id="gen-host-port" placeholder="Host Port" style="margin: 0;"></div>
+                    <div><label><small>Target Host</small></label><input type="text" id="gen-target-host" value="127.0.0.1" style="margin: 0;"></div>
+                    <div><label><small>Target Port</small></label><input type="number" id="gen-target-port" placeholder="Target Port" style="margin: 0;"></div>
+                    <button class="btn btn-primary" onclick="createGenericProxy()">Expose Port</button>
+                </div>
+                <div id="generic-proxy-list">
+                    <!-- Generic proxies loaded here -->
+                </div>
+            </div>
+
+            <!-- VM Management Section -->
+            <div class="card">
+                <h3>VM Management</h3>
+                <div class="grid" style="margin-bottom: 10px;">
+                    <input type="text" id="new-vm-name" placeholder="VM Name" style="margin: 0;">
+                    <input type="text" id="new-vm-path" placeholder="Full .vmx path" style="margin: 0;">
                     <button class="btn btn-primary" onclick="addVM()">Add VM</button>
                 </div>
-                <button class="btn btn-secondary" onclick="scanVMs()">Scan for VMs in common paths</button>
+                <button class="btn btn-secondary" onclick="scanVMs()">Scan for VMs</button>
+                
                 <div id="scan-results" class="hidden" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                     <h4>Discovered VMs</h4>
                     <div id="discovered-list"></div>
                 </div>
             </div>
 
+            <!-- Port Registry Section -->
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Port Registry</h3>
+                    <h3>Port Registry (All Active Rules)</h3>
                     <button class="btn btn-secondary" onclick="loadRegistry()">Refresh Registry</button>
                 </div>
-                <div id="registry-view" style="margin-top: 10px;">
-                    <p>Click refresh to see active port allocations.</p>
-                </div>
+                <div id="registry-view" style="margin-top: 10px;"></div>
             </div>
 
             <div id="vm-list">
-                <!-- VMs will be loaded here -->
+                <!-- Managed VMs loaded here -->
             </div>
         </div>
     </div>
@@ -109,23 +129,14 @@
         async function api(endpoint, method = 'GET', body = null) {
             const options = {
                 method,
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             };
             if (body) {
-                if (body instanceof FormData) {
-                    options.body = body;
-                } else {
-                    options.headers['Content-Type'] = 'application/json';
-                    options.body = JSON.stringify(body);
-                }
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
             }
             const response = await fetch(endpoint, options);
-            if (response.status === 401) {
-                logout();
-                return;
-            }
+            if (response.status === 401) { logout(); return; }
             return response.json();
         }
 
@@ -133,12 +144,7 @@
             const formData = new FormData();
             formData.append('username', document.getElementById('username').value);
             formData.append('password', document.getElementById('password').value);
-
-            const response = await fetch('/token', {
-                method: 'POST',
-                body: formData
-            });
-
+            const response = await fetch('/token', { method: 'POST', body: formData });
             if (response.ok) {
                 const data = await response.json();
                 token = data.access_token;
@@ -146,12 +152,12 @@
                 localStorage.setItem('permissions', data.permissions);
                 showMain();
             } else {
-                document.getElementById('login-error').innerText = 'Login failed. Check credentials.';
+                document.getElementById('login-error').innerText = 'Login failed.';
             }
         }
 
         function logout() {
-            localStorage.removeItem('token');
+            localStorage.clear();
             token = null;
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('main-view').classList.add('hidden');
@@ -160,13 +166,16 @@
         function showMain() {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('main-view').classList.remove('hidden');
-            loadVMs();
+            loadAll();
+        }
+
+        async function loadAll() {
+            await Promise.all([loadVMs(), loadRegistry()]);
         }
 
         async function loadVMs() {
             const vms = await api('/api/vms');
             if (!vms) return;
-
             const container = document.getElementById('vm-list');
             container.innerHTML = '<h3>Managed Virtual Machines</h3>';
 
@@ -174,12 +183,9 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div>
-                            <strong>${vm.name}</strong><br>
-                            <small>${vm.path}</small><br>
-                            Status: <span class="status-${vm.status}">${vm.status.toUpperCase()}</span>
-                        </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <div><strong>${vm.name}</strong><br><small>${vm.path}</small><br>
+                        Status: <span class="status-${vm.status}">${vm.status.toUpperCase()}</span></div>
                         <div style="display: flex; gap: 5px;">
                             <button class="btn btn-success" onclick="controlVM('${vm.id}', 'start')">Start</button>
                             <button class="btn btn-secondary" onclick="controlVM('${vm.id}', 'restart')">Restart</button>
@@ -187,23 +193,20 @@
                             <button class="btn btn-secondary" onclick="deleteVM('${vm.id}')">Remove</button>
                         </div>
                     </div>
-                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-                        <strong>Port Forwarding (LAN Only)</strong>
-                        <div id="proxies-${vm.id}">
-                            ${vm.proxies.map(p => `
-                                <div class="proxy-item">
-                                    <span>Host:${p.host_port} &rarr; VM:${p.vm_port} (${p.enabled ? 'Enabled' : 'Disabled'})</span>
-                                    <div>
-                                        <button class="btn btn-secondary" onclick="toggleProxy('${p.id}')">${p.enabled ? 'Disable' : 'Enable'}</button>
-                                        <button class="btn btn-danger" onclick="deleteProxy('${p.id}')">Delete</button>
-                                    </div>
+                    <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                        ${vm.proxies.map(p => `
+                            <div class="proxy-item">
+                                <span>Host:${p.host_port} &rarr; VM:${p.vm_port} (${p.enabled ? 'Enabled' : 'Disabled'})</span>
+                                <div>
+                                    <button class="btn btn-secondary" onclick="toggleProxy('${p.id}')">${p.enabled ? 'Disable' : 'Enable'}</button>
+                                    <button class="btn btn-danger" onclick="deleteProxy('${p.id}')">Delete</button>
                                 </div>
-                            `).join('')}
-                        </div>
-                        <div style="margin-top: 10px; display: flex; gap: 5px;">
+                            </div>
+                        `).join('')}
+                        <div style="display: flex; gap: 5px; margin-top: 10px;">
                             <input type="number" id="host-port-${vm.id}" placeholder="Host Port" style="width: 100px; margin: 0;">
                             <input type="number" id="vm-port-${vm.id}" placeholder="VM Port" style="width: 100px; margin: 0;">
-                            <button class="btn btn-primary" onclick="createProxy('${vm.id}')">Expose Port</button>
+                            <button class="btn btn-primary" onclick="createVMProxy('${vm.id}')">Add VM Port</button>
                         </div>
                     </div>
                 `;
@@ -211,145 +214,181 @@
             });
         }
 
-        async function addVM() {
-            const name = document.getElementById('new-vm-name').value;
-            const path = document.getElementById('new-vm-path').value;
-            await api(`/api/vms?name=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`, 'POST');
-            loadVMs();
-        }
+        async function loadRegistry() {
+            const res = await api('/api/registry');
+            const container = document.getElementById('registry-view');
+            
+            if (!res || res.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #718096; padding: 20px;">
+                        <p>Registry is empty. No active or blocked ports.</p>
+                    </div>
+                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                        <h4>Registry Management</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button class="btn btn-secondary" onclick="scanRegistry()">Scan for Occupied Ports</button>
+                            <div id="block-port-num-container" style="display: flex; gap: 10px; flex-grow: 1;">
+                                <input type="number" id="block-port-num" placeholder="Port" style="width: 100px; margin: 0;">
+                                <input type="text" id="block-port-desc" placeholder="Description/Reason" style="margin: 0;">
+                                <button class="btn btn-danger" onclick="blockPort()">Manual Block</button>
+                            </div>
+                        </div>
+                        <div id="occupied-scan-results" class="hidden" style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #fed7d7;">
+                            <p><small><strong>Discovered Occupied Ports (Host):</strong></small></p>
+                            <div id="occupied-list" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr><th>Port</th><th>Target / Reason</th><th>Type</th><th>Status</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            ${res.map(p => `
+                                <tr>
+                                    <td>${p.port}</td>
+                                    <td>${p.target}</td>
+                                    <td>${p.type}</td>
+                                    <td><strong style="color: ${p.status === 'active' ? '#48bb78' : '#f56565'}">${p.status.toUpperCase()}</strong></td>
+                                    <td>
+                                        ${p.status === 'blocked' ? `<button class="btn btn-danger" onclick="unblockPort(${p.port})">Unblock</button>` : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                        <h4>Registry Management</h4>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button class="btn btn-secondary" onclick="scanRegistry()">Scan for Occupied Ports</button>
+                            <div id="block-port-num-container" style="display: flex; gap: 10px; flex-grow: 1;">
+                                <input type="number" id="block-port-num" placeholder="Port" style="width: 100px; margin: 0;">
+                                <input type="text" id="block-port-desc" placeholder="Description/Reason" style="margin: 0;">
+                                <button class="btn btn-danger" onclick="blockPort()">Manual Block</button>
+                            </div>
+                        </div>
+                        <div id="occupied-scan-results" class="hidden" style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #fed7d7;">
+                            <p><small><strong>Discovered Occupied Ports (Host):</strong></small></p>
+                            <div id="occupied-list" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
+                        </div>
+                    </div>
+                `;
+            }
 
-        async function deleteVM(id) {
-            if (confirm('Remove this VM from management?')) {
-                await api(`/api/vms/${id}`, 'DELETE');
-                loadVMs();
+            // Update Generic List Section
+            const allProxies = await api('/api/proxies');
+            const genericList = document.getElementById('generic-proxy-list');
+            const hostProxies = allProxies.filter(p => !p.vm_id);
+            
+            if (hostProxies.length === 0) {
+                genericList.innerHTML = '<p style="color: #a0aec0;"><small>No generic host proxies configured.</small></p>';
+            } else {
+                genericList.innerHTML = hostProxies.map(p => `
+                    <div class="proxy-item">
+                        <span><strong>Host:${p.host_port}</strong> &rarr; <strong>${p.target_host}:${p.vm_port}</strong> (${p.enabled ? 'Enabled' : 'Disabled'})</span>
+                        <div>
+                            <button class="btn btn-secondary" onclick="toggleProxy('${p.id}')">${p.enabled ? 'Disable' : 'Enable'}</button>
+                            <button class="btn btn-danger" onclick="deleteProxy('${p.id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
             }
         }
 
-        async function controlVM(id, action) {
-            await api(`/api/vms/${id}/${action}`, 'POST');
-            loadVMs();
+        async function scanRegistry() {
+            const results = await api('/api/registry/scan', 'POST');
+            const container = document.getElementById('occupied-list');
+            const view = document.getElementById('occupied-scan-results');
+            
+            if (results && Array.isArray(results) && results.length > 0) {
+                view.classList.remove('hidden');
+                container.innerHTML = results.map(port => `
+                    <div style="background: white; border: 1px solid #feb2b2; padding: 4px 10px; border-radius: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <strong>${port}</strong>
+                        <div style="display: flex; gap: 3px;">
+                            <button class="btn btn-danger" style="padding: 2px 6px; font-size: 10px;" onclick="blockFoundPort(${port})">Block</button>
+                            <button class="btn btn-success" style="padding: 2px 6px; font-size: 10px;" onclick="quickExposePort(${port})">Expose</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                alert('No new occupied ports found.');
+                view.classList.add('hidden');
+            }
         }
 
-        async function createProxy(vmId) {
-            const hostPort = document.getElementById(`host-port-${vmId}`).value;
-            const vmPort = document.getElementById(`vm-port-${vmId}`).value;
-            const res = await api(`/api/proxies?vm_id=${vmId}&host_port=${hostPort}&vm_port=${vmPort}`, 'POST');
-            if (res.detail) alert(res.detail);
-            loadVMs();
+        async function quickExposePort(port) {
+            const target_port = prompt(`Expose Host Port ${port} to which target port on 127.0.0.1?`, port);
+            if (target_port) {
+                await api(`/api/proxies?host_port=${port}&target_port=${target_port}&target_host=127.0.0.1`, 'POST');
+                loadAll();
+            }
         }
 
-        async function toggleProxy(proxyId) {
-            await api(`/api/proxies/${proxyId}/toggle`, 'PUT');
-            loadVMs();
+        async function createGenericProxy() {
+            const host_port = document.getElementById('gen-host-port').value;
+            const target_host = document.getElementById('gen-target-host').value;
+            const target_port = document.getElementById('gen-target-port').value;
+            await api(`/api/proxies?host_port=${host_port}&target_port=${target_port}&target_host=${target_host}`, 'POST');
+            loadAll();
         }
 
-        async function deleteProxy(proxyId) {
-            await api(`/api/proxies/${proxyId}`, 'DELETE');
-            loadVMs();
+        async function createVMProxy(vmId) {
+            const host_port = document.getElementById(`host-port-${vmId}`).value;
+            const target_port = document.getElementById(`vm-port-${vmId}`).value;
+            await api(`/api/proxies?vm_id=${vmId}&host_port=${host_port}&target_port=${target_port}`, 'POST');
+            loadAll();
         }
+
+        async function toggleProxy(id) { await api(`/api/proxies/${id}/toggle`, 'PUT'); loadAll(); }
+        async function deleteProxy(id) { await api(`/api/proxies/${id}`, 'DELETE'); loadAll(); }
+        async function controlVM(id, action) { await api(`/api/vms/${id}/${action}`, 'POST'); loadAll(); }
+        async function addVM() { 
+            const name = document.getElementById('new-vm-name').value;
+            const path = document.getElementById('new-vm-path').value;
+            await api(`/api/vms?name=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`, 'POST');
+            loadAll();
+        }
+        async function deleteVM(id) { if(confirm('Remove VM?')) { await api(`/api/vms/${id}`, 'DELETE'); loadAll(); } }
 
         async function scanVMs() {
             const results = await api('/api/vms/scan', 'POST');
             const container = document.getElementById('discovered-list');
             const view = document.getElementById('scan-results');
-            
-            if (results && Array.isArray(results)) {
-                if (results.length > 0) {
-                    view.classList.remove('hidden');
-                    container.innerHTML = results.map(vm => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 4px;">
-                            <span><strong>${vm.name}</strong><br><small>${vm.path}</small></span>
-                            <button class="btn btn-success" onclick="addDiscoveredVM('${vm.name}', '${vm.path.replace(/\\/g, '\\\\')}')">Add</button>
-                        </div>
-                    `).join('');
-                } else {
-                    alert('No new VMs discovered. They may already be added or not found in known paths.');
-                    view.classList.add('hidden');
-                }
-            } else {
-                alert('Scan failed: ' + (results.detail || 'Unknown error'));
-                view.classList.add('hidden');
-            }
+            if (results && results.length > 0) {
+                view.classList.remove('hidden');
+                container.innerHTML = results.map(vm => `
+                    <div class="proxy-item"><span><strong>${vm.name}</strong><br><small>${vm.path}</small></span>
+                    <button class="btn btn-success" onclick="addDiscoveredVM('${vm.name}', '${vm.path.replace(/\\/g, '\\\\')}')">Add</button></div>
+                `).join('');
+            } else { alert('No new VMs found.'); }
         }
-
-        async function addDiscoveredVM(name, path) {
+        async function addDiscoveredVM(name, path) { 
             await api(`/api/vms?name=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`, 'POST');
             document.getElementById('scan-results').classList.add('hidden');
-            loadVMs();
-        }
-
-        async function loadRegistry() {
-            const registry = await api('/api/registry');
-            const container = document.getElementById('registry-view');
-            
-            if (registry) {
-                if (registry.active_proxies.length === 0) {
-                    container.innerHTML = '<p>No active port allocations.</p>';
-                } else {
-                    container.innerHTML = `
-                        <table style="font-size: 13px;">
-                            <thead>
-                                <tr>
-                                    <th>Host Port</th>
-                                    <th>VM ID</th>
-                                    <th>VM Port</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${registry.active_proxies.map(p => `
-                                    <tr>
-                                        <td>${p.port}</td>
-                                        <td>${p.vm_id.substring(0, 8)}...</td>
-                                        <td>${p.vm_port}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                        <p><small>Total Used Ports: ${registry.used_ports.length}</small></p>
-                    `;
-                }
-            }
+            loadAll();
         }
 
         function showSettings() {
             document.getElementById('settings-view').classList.remove('hidden');
-            // Check if current user is admin to show user management
-            // We store permissions in localStorage after login
             const perms = localStorage.getItem('permissions');
-            if (perms === '*' || perms.includes('user:manage')) {
-                document.getElementById('admin-user-section').classList.remove('hidden');
-            }
+            if (perms === '*' || perms.includes('user:manage')) document.getElementById('admin-user-section').classList.remove('hidden');
         }
-
-        function hideSettings() {
-            document.getElementById('settings-view').classList.add('hidden');
-        }
-
+        function hideSettings() { document.getElementById('settings-view').classList.add('hidden'); }
         async function changePassword() {
             const old_password = document.getElementById('old-pass').value;
             const new_password = document.getElementById('new-pass').value;
-            const res = await api('/api/user/change-password', 'POST', { old_password, new_password });
-            if (res.status === 'success') {
-                alert('Password updated successfully!');
-                document.getElementById('old-pass').value = '';
-                document.getElementById('new-pass').value = '';
-            } else {
-                alert('Update failed: ' + (res.detail || 'Unknown error'));
-            }
+            await api('/api/user/change-password', 'POST', { old_password, new_password });
+            alert('Updated!');
         }
-
         async function createUser() {
             const username = document.getElementById('new-user-name').value;
             const password = document.getElementById('new-user-pass').value;
             const permissions = document.getElementById('new-user-perms').value;
-            const res = await api('/api/users', 'POST', { username, password, permissions });
-            if (res.status === 'success') {
-                alert('User created successfully!');
-                document.getElementById('new-user-name').value = '';
-                document.getElementById('new-user-pass').value = '';
-            } else {
-                alert('Creation failed: ' + (res.detail || 'Unknown error'));
-            }
+            await api('/api/users', 'POST', { username, password, permissions });
+            alert('Created!');
         }
 
         if (token) showMain();

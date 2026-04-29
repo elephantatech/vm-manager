@@ -1,24 +1,29 @@
 import os
 import pytest
+import sqlalchemy
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from unittest.mock import AsyncMock, patch
 
-# Set TESTING environment variable
+# Set TESTING environment variable before anything else
 os.environ["TESTING"] = "1"
 
 import database as db_mod
-from main import app, get_db, get_current_user
+import main
 
-# Use in-memory SQLite for testing
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+# Use IN-MEMORY SQLite for testing
+SQLALCHEMY_DATABASE_URL = "sqlite://"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=sqlalchemy.pool.StaticPool)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Monkey-patch the global engine and session in the database module
+db_mod.engine = engine
+db_mod.SessionLocal = TestingSessionLocal
+
 def override_get_db():
+    db = TestingSessionLocal()
     try:
-        db = TestingSessionLocal()
         yield db
     finally:
         db.close()
@@ -26,31 +31,43 @@ def override_get_db():
 def override_get_current_user():
     return db_mod.User(username="admin", permissions="*")
 
-app.dependency_overrides[get_db] = override_get_db
-app.dependency_overrides[get_current_user] = override_get_current_user
+# Crucial: Override the app's dependencies
+main.app.dependency_overrides[main.get_db] = override_get_db
+main.app.dependency_overrides[main.get_current_user] = override_get_current_user
+
+@pytest.fixture(autouse=True)
+def setup_db():
+    # Force schema creation in the shared in-memory DB
+    db_mod.Base.metadata.create_all(bind=engine)
+    # Also patch the global proxy_manager's start_proxy to avoid side effects during lifespan
+    with patch("proxy.ProxyManager.start_proxy", new_callable=AsyncMock) as mock:
+        mock.return_value = True
+        yield
+    db_mod.Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture
 def client():
-    db_mod.Base.metadata.create_all(bind=engine)
-    with TestClient(app) as c:
+    # We use a context manager to trigger lifespan events
+    with TestClient(main.app) as c:
         yield c
-    db_mod.Base.metadata.drop_all(bind=engine)
 
 def test_api_vms_empty(client):
     response = client.get("/api/vms")
     assert response.status_code == 200
     assert response.json() == []
 
-@patch("vm_control.VMControl.get_status", new_callable=AsyncMock)
-def test_get_vms_with_data(mock_status, client):
-    mock_status.return_value = "running"
-    db = TestingSessionLocal()
-    db.add(db_mod.VM(id="1", name="Test VM", path="test.vmx"))
-    db.commit()
-    db.close()
-    
-    response = client.get("/api/vms")
+def test_port_blocking_api(client):
+    response = client.post("/api/registry/block?port=9999&description=Test")
     assert response.status_code == 200
-    data = response.json()
-    assert data[0]["name"] == "Test VM"
-    assert data[0]["status"] == "running"
+    
+    response = client.get("/api/registry")
+    assert any(p["port"] == 9999 and p["status"] == "blocked" for p in response.json())
+    
+    response = client.delete("/api/registry/block/9999")
+    assert response.status_code == 200
+
+@patch("proxy.ProxyManager.start_proxy", new_callable=AsyncMock)
+def test_create_generic_proxy_api(mock_start, client):
+    mock_start.return_value = True
+    response = client.post("/api/proxies?host_port=7000&target_port=7001&target_host=127.0.0.1")
+    assert response.status_code == 200

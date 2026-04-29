@@ -4,15 +4,18 @@ from typing import Optional
 from jose import jwt
 
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
-SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_ME" # In a real app, load from environment
+SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_ME"  # In a real app, load from environment
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 
 def hash_password(password: str) -> str:
     return PWD_CONTEXT.hash(password)
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return PWD_CONTEXT.verify(plain_password, hashed_password)
+
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()

@@ -1,6 +1,7 @@
 import asyncio
 from playwright.async_api import async_playwright
 
+
 async def run_diagnostics():
     async with async_playwright() as p:
         # Launch browser
@@ -8,13 +9,21 @@ async def run_diagnostics():
         page = await browser.new_page()
 
         print("--- Starting GUI Diagnostics ---")
-        
+
         # 1. Capture console logs
-        page.on("console", lambda msg: print(f"BROWSER CONSOLE: [{msg.type}] {msg.text}"))
-        
+        page.on(
+            "console", lambda msg: print(f"BROWSER CONSOLE: [{msg.type}] {msg.text}")
+        )
+
         # 2. Capture network requests
-        page.on("request", lambda request: print(f"NETWORK REQ: {request.method} {request.url}"))
-        page.on("response", lambda response: print(f"NETWORK RES: {response.status} {response.url}"))
+        page.on(
+            "request",
+            lambda request: print(f"NETWORK REQ: {request.method} {request.url}"),
+        )
+        page.on(
+            "response",
+            lambda response: print(f"NETWORK RES: {response.status} {response.url}"),
+        )
 
         try:
             # 3. Navigate to app
@@ -52,6 +61,7 @@ async def run_diagnostics():
             print(f"DIAGNOSTIC ERROR: {str(e)}")
         finally:
             await browser.close()
+
 
 if __name__ == "__main__":
     asyncio.run(run_diagnostics())
