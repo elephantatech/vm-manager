@@ -299,23 +299,18 @@
 
         async function scanRegistry() {
             const results = await api('/api/registry/scan', 'POST');
-            const container = document.getElementById('occupied-list');
             const view = document.getElementById('occupied-scan-results');
             
-            if (results && Array.isArray(results) && results.length > 0) {
-                view.classList.remove('hidden');
-                container.innerHTML = results.map(port => `
-                    <div style="background: white; border: 1px solid #feb2b2; padding: 4px 10px; border-radius: 4px; font-size: 12px; display: flex; align-items: center; gap: 8px; margin-bottom: 5px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                        <strong>${port}</strong>
-                        <div style="display: flex; gap: 3px;">
-                            <button class="btn btn-danger" style="padding: 2px 6px; font-size: 10px;" onclick="blockFoundPort(${port})">Block</button>
-                            <button class="btn btn-success" style="padding: 2px 6px; font-size: 10px;" onclick="quickExposePort(${port})">Expose</button>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                alert('No new occupied ports found.');
+            if (results && Array.isArray(results)) {
+                if (results.length > 0) {
+                    alert(`Discovered and auto-blocked ${results.length} new occupied ports on the host.`);
+                } else {
+                    alert('No new occupied ports discovered.');
+                }
                 view.classList.add('hidden');
+                loadAll();
+            } else {
+                alert('Scan failed: ' + (results.detail || 'Unknown error'));
             }
         }
 

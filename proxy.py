@@ -215,23 +215,38 @@ class ProxyManager:
             return True
         return False
 
-    async def scan_host_listening_ports(self) -> List[int]:
-        # Uses PowerShell to find all ports currently in LISTEN state
-        cmd = 'Get-NetTCPConnection -State Listen | Select-Object -ExpandProperty LocalPort'
+    async def scan_host_listening_ports(self) -> List[Dict]:
+        cmd_ports = "$conns = Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue; $results = @(); foreach ($c in $conns) { $pName = 'Unknown Process'; if ($c.OwningProcess -gt 0) { $p = Get-Process -Id $c.OwningProcess -ErrorAction SilentlyContinue; if ($p) { $pName = $p.ProcessName } }; $results += [PSCustomObject]@{ Port = $c.LocalPort; Description = 'Process: ' + $pName } }; $fwRules = Get-NetFirewallRule -Action Allow -Direction Inbound -Enabled True -ErrorAction SilentlyContinue; foreach ($r in $fwRules) { $portFilter = $r | Get-NetFirewallPortFilter -ErrorAction SilentlyContinue; if ($portFilter -and $portFilter.LocalPort -match '^\\d+$') { $results += [PSCustomObject]@{ Port = [int]$portFilter.LocalPort; Description = 'Firewall Rule: ' + $r.DisplayName } } }; @($results | Select-Object -Property Port, Description -Unique) | ConvertTo-Json -Compress"
         process = await asyncio.create_subprocess_shell(
-            f'powershell.exe -Command "{cmd}"',
+            f'powershell.exe -Command "{cmd_ports}"',
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
         stdout, _ = await process.communicate()
-        
-        ports = []
-        if process.returncode == 0:
-            for line in stdout.decode().splitlines():
-                try:
-                    port = int(line.strip())
-                    if port > 0:
-                        ports.append(port)
-                except ValueError:
-                    continue
-        return list(set(ports))
+
+        ports_info = []
+        if process.returncode == 0 and stdout:
+            import json
+
+            try:
+                data = json.loads(stdout.decode("utf-8", errors="ignore"))
+                if isinstance(data, list):
+                    ports_info = data
+                elif isinstance(data, dict):
+                    ports_info = [data]
+            except Exception as e:
+                logger.error({"event": "scan_ports_json_error", "error": str(e)})
+
+        # Deduplicate and combine descriptions by port
+        port_dict = {}
+        for item in ports_info:
+            p = item.get("Port")
+            desc = item.get("Description", "")
+            if p:
+                if p in port_dict:
+                    if desc not in port_dict[p]:
+                        port_dict[p] += f" | {desc}"
+                else:
+                    port_dict[p] = desc
+
+        return [{"port": k, "description": v} for k, v in port_dict.items()]

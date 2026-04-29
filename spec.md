@@ -27,7 +27,9 @@ Interfaces with VMware via `asyncio.create_subprocess_exec`.
 - **Unified Proxying:** Supports both dynamic VM-linked proxies and static "Generic Host" proxies (targeting `127.0.0.1` or any IP).
 - **Persistent Port Registry:** 
     - Prevents host port collisions by tracking active proxies.
-    - Supports **Manual Port Blocking** via the `reserved_ports` table.
+    - Supports **Manual and Automatic Port Blocking** via the `reserved_ports` table.
+    - **Port Scanning:** Discovers occupied host ports by identifying the owning Process Name and any existing Inbound Firewall Rules.
+    - **Auto-Reserve:** Discovered occupied ports are automatically inserted into the registry as "Blocked" with descriptive reasoning (e.g., `"Auto-blocked: Process: nginx | Firewall Rule: Custom Rule"`).
     - Triple-check validation (Memory + Database + OS bind test) before allocation.
 - **Firewall Integration:** Executes `netsh advfirewall` commands restricted to `remoteip=localsubnet`.
 

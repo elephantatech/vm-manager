@@ -1,10 +1,8 @@
 import os
-import ctypes
 import uuid
-import sys
-from typing import Optional, List
+from typing import Optional
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException, status, Request
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -13,7 +11,13 @@ from pydantic import BaseModel
 from jose import jwt
 
 from logger_config import logger
-from security import verify_password, hash_password, create_access_token, SECRET_KEY, ALGORITHM
+from security import (
+    verify_password,
+    hash_password,
+    create_access_token,
+    SECRET_KEY,
+    ALGORITHM,
+)
 from vm_control import VMControl
 from proxy import ProxyManager
 import database as db_mod
@@ -96,7 +100,9 @@ def get_db():
 db_mod.init_db()
 
 _init_db = db_mod.SessionLocal()
-setting = _init_db.query(db_mod.Setting).filter(db_mod.Setting.key == "vmrun_path").first()
+setting = (
+    _init_db.query(db_mod.Setting).filter(db_mod.Setting.key == "vmrun_path").first()
+)
 vmrun_path = (
     setting.value
     if setting
@@ -116,7 +122,9 @@ def bootstrap_admin(db: Session):
         logger.info({"event": "bootstrapping_admin_user"})
         db.add(
             db_mod.User(
-                username="admin", hashed_password=hash_password("admin"), permissions="*"
+                username="admin",
+                hashed_password=hash_password("admin"),
+                permissions="*",
             )
         )
         db.commit()
@@ -166,8 +174,12 @@ async def lan_middleware(request: Request, call_next):
 
 
 @app.post("/token")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(db_mod.User).filter(db_mod.User.username == form_data.username).first()
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    user = (
+        db.query(db_mod.User).filter(db_mod.User.username == form_data.username).first()
+    )
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     return {
@@ -267,7 +279,9 @@ async def add_vm(
 
 @app.delete("/api/vms/{vm_id}")
 async def delete_vm(
-    vm_id: str, current_user: db_mod.User = Depends(get_current_user), db: Session = Depends(get_db)
+    vm_id: str,
+    current_user: db_mod.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     check_perms(current_user, "vm:delete")
     vm = db.query(db_mod.VM).filter(db_mod.VM.id == vm_id).first()
@@ -315,7 +329,12 @@ async def get_registry(
     ]
     reserved = db.query(db_mod.ReservedPort).all()
     blocked = [
-        {"port": r.port, "target": r.description, "type": "Blocked", "status": "blocked"}
+        {
+            "port": r.port,
+            "target": r.description,
+            "type": "Blocked",
+            "status": "blocked",
+        }
         for r in reserved
     ]
     return active + blocked
@@ -345,18 +364,25 @@ async def scan_registry(
     current_user: db_mod.User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     check_perms(current_user, "proxy:create")
-    found_ports = await proxy_manager.scan_host_listening_ports()
-    
+    found_ports_info = await proxy_manager.scan_host_listening_ports()
+
     # Filter out ports we already know about
     active_ports = set(proxy_manager.proxies.keys())
     blocked_ports = {r.port for r in db.query(db_mod.ReservedPort).all()}
-    
+
     new_occupied = []
-    for port in found_ports:
+    for info in found_ports_info:
+        port = info["port"]
+        desc = info["description"]
         if port not in active_ports and port not in blocked_ports:
-            new_occupied.append(port)
-            
-    return sorted(new_occupied)
+            # Auto-block in registry
+            db.add(db_mod.ReservedPort(port=port, description=f"Auto-blocked: {desc}"))
+            new_occupied.append({"port": port, "description": desc})
+
+    if new_occupied:
+        db.commit()
+
+    return new_occupied
 
 
 @app.post("/api/registry/block")
@@ -376,7 +402,9 @@ async def block_port(
 
 @app.delete("/api/registry/block/{port}")
 async def unblock_port(
-    port: int, current_user: db_mod.User = Depends(get_current_user), db: Session = Depends(get_db)
+    port: int,
+    current_user: db_mod.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     check_perms(current_user, "proxy:delete")
     res = db.query(db_mod.ReservedPort).filter(db_mod.ReservedPort.port == port).first()
