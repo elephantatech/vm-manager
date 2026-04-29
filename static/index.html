@@ -80,7 +80,10 @@
 
             <!-- Generic Proxy Section -->
             <div class="card">
-                <h3>Host Services (Local / Podman / Ollama)</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3>Host Services (Local / Podman / Ollama)</h3>
+                    <button class="btn btn-secondary scan-reg-btn" onclick="scanRegistry()">Scan Host for Services</button>
+                </div>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: end;">
                     <div><label><small>Host Port</small></label><input type="number" id="gen-host-port" placeholder="Host Port" style="margin: 0;"></div>
                     <div><label><small>Target Host</small></label><input type="text" id="gen-target-host" value="127.0.0.1" style="margin: 0;"></div>
@@ -100,7 +103,7 @@
                     <input type="text" id="new-vm-path" placeholder="Full .vmx path" style="margin: 0;">
                     <button class="btn btn-primary" onclick="addVM()">Add VM</button>
                 </div>
-                <button class="btn btn-secondary" onclick="scanVMs()">Scan for VMs</button>
+                <button id="scan-vms-btn" class="btn btn-secondary" onclick="scanVMs()">Scan for VMs</button>
                 
                 <div id="scan-results" class="hidden" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                     <h4>Discovered VMs</h4>
@@ -112,7 +115,10 @@
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <h3>Port Registry (All Active Rules)</h3>
-                    <button class="btn btn-secondary" onclick="loadRegistry()">Refresh Registry</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary scan-reg-btn" onclick="scanRegistry()">Scan for Occupied Ports</button>
+                        <button class="btn btn-secondary" onclick="loadRegistry()">Refresh Registry</button>
+                    </div>
                 </div>
                 <div id="registry-view" style="margin-top: 10px;"></div>
             </div>
@@ -226,16 +232,11 @@
                     <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                         <h4>Registry Management</h4>
                         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                            <button class="btn btn-secondary" onclick="scanRegistry()">Scan for Occupied Ports</button>
                             <div id="block-port-num-container" style="display: flex; gap: 10px; flex-grow: 1;">
                                 <input type="number" id="block-port-num" placeholder="Port" style="width: 100px; margin: 0;">
                                 <input type="text" id="block-port-desc" placeholder="Description/Reason" style="margin: 0;">
                                 <button class="btn btn-danger" onclick="blockPort()">Manual Block</button>
                             </div>
-                        </div>
-                        <div id="occupied-scan-results" class="hidden" style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #fed7d7;">
-                            <p><small><strong>Discovered Occupied Ports (Host):</strong></small></p>
-                            <div id="occupied-list" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
                         </div>
                     </div>
                 `;
@@ -253,7 +254,10 @@
                                     <td>${p.type}</td>
                                     <td><strong style="color: ${p.status === 'active' ? '#48bb78' : '#f56565'}">${p.status.toUpperCase()}</strong></td>
                                     <td>
-                                        ${p.status === 'blocked' ? `<button class="btn btn-danger" onclick="unblockPort(${p.port})">Unblock</button>` : ''}
+                                        ${p.status === 'blocked' ? `
+                                            <button class="btn btn-success" style="padding: 4px 8px; font-size: 11px;" onclick="quickExposePort(${p.port})">Expose</button>
+                                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="unblockPort(${p.port})">Unblock</button>
+                                        ` : ''}
                                     </td>
                                 </tr>
                             `).join('')}
@@ -262,16 +266,11 @@
                     <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
                         <h4>Registry Management</h4>
                         <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                            <button class="btn btn-secondary" onclick="scanRegistry()">Scan for Occupied Ports</button>
                             <div id="block-port-num-container" style="display: flex; gap: 10px; flex-grow: 1;">
                                 <input type="number" id="block-port-num" placeholder="Port" style="width: 100px; margin: 0;">
                                 <input type="text" id="block-port-desc" placeholder="Description/Reason" style="margin: 0;">
                                 <button class="btn btn-danger" onclick="blockPort()">Manual Block</button>
                             </div>
-                        </div>
-                        <div id="occupied-scan-results" class="hidden" style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #fed7d7;">
-                            <p><small><strong>Discovered Occupied Ports (Host):</strong></small></p>
-                            <div id="occupied-list" style="display: flex; flex-wrap: wrap; gap: 5px;"></div>
                         </div>
                     </div>
                 `;
@@ -298,25 +297,31 @@
         }
 
         async function scanRegistry() {
+            const btns = document.querySelectorAll('.scan-reg-btn');
+            btns.forEach(b => { b.innerText = 'Scanning...'; b.disabled = true; });
+            
             const results = await api('/api/registry/scan', 'POST');
-            const view = document.getElementById('occupied-scan-results');
+            
+            btns.forEach(b => { b.innerText = 'Scan for Occupied Ports'; b.disabled = false; });
             
             if (results && Array.isArray(results)) {
                 if (results.length > 0) {
-                    alert(`Discovered and auto-blocked ${results.length} new occupied ports on the host.`);
+                    alert(`Discovered and auto-blocked ${results.length} new occupied ports on the host. You can now choose to 'Expose' them in the table below.`);
                 } else {
                     alert('No new occupied ports discovered.');
                 }
-                view.classList.add('hidden');
                 loadAll();
             } else {
-                alert('Scan failed: ' + (results.detail || 'Unknown error'));
+                alert('Scan failed: ' + (results ? results.detail : 'Unknown error'));
             }
         }
 
         async function quickExposePort(port) {
             const target_port = prompt(`Expose Host Port ${port} to which target port on 127.0.0.1?`, port);
             if (target_port) {
+                // If it's currently blocked, we should probably unblock it first or have the API handle it
+                // Our API check_perms doesn't unblock automatically, let's update it or do it here
+                await api(`/api/registry/block/${port}`, 'DELETE');
                 await api(`/api/proxies?host_port=${port}&target_port=${target_port}&target_host=127.0.0.1`, 'POST');
                 loadAll();
             }
@@ -349,16 +354,24 @@
         async function deleteVM(id) { if(confirm('Remove VM?')) { await api(`/api/vms/${id}`, 'DELETE'); loadAll(); } }
 
         async function scanVMs() {
+            const btn = document.getElementById('scan-vms-btn');
+            if (btn) { btn.innerText = 'Scanning...'; btn.disabled = true; }
+            
             const results = await api('/api/vms/scan', 'POST');
             const container = document.getElementById('discovered-list');
             const view = document.getElementById('scan-results');
-            if (results && results.length > 0) {
-                view.classList.remove('hidden');
-                container.innerHTML = results.map(vm => `
-                    <div class="proxy-item"><span><strong>${vm.name}</strong><br><small>${vm.path}</small></span>
-                    <button class="btn btn-success" onclick="addDiscoveredVM('${vm.name}', '${vm.path.replace(/\\/g, '\\\\')}')">Add</button></div>
-                `).join('');
-            } else { alert('No new VMs found.'); }
+            
+            if (btn) { btn.innerText = 'Scan for VMs'; btn.disabled = false; }
+            
+            if (results && Array.isArray(results)) {
+                if (results.length > 0) {
+                    view.classList.remove('hidden');
+                    container.innerHTML = results.map(vm => `
+                        <div class="proxy-item"><span><strong>${vm.name}</strong><br><small>${vm.path}</small></span>
+                        <button class="btn btn-success" onclick="addDiscoveredVM('${vm.name}', '${vm.path.replace(/\\/g, '\\\\')}')">Add</button></div>
+                    `).join('');
+                } else { alert('No new VMs found.'); }
+            } else { alert('Scan failed: ' + (results ? results.detail : 'Unknown error')); }
         }
         async function addDiscoveredVM(name, path) { 
             await api(`/api/vms?name=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`, 'POST');
