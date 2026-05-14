@@ -7,9 +7,7 @@ from proxy import PortRegistry, ProxyManager
 
 # Setup test DB
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -66,3 +64,31 @@ async def test_scan_host_listening_ports_format(db):
         assert len(results) == 1
         assert results[0]["port"] == 80
         assert "nginx" in results[0]["description"]
+
+
+@pytest.mark.asyncio
+async def test_proxy_manager_stop_proxy(db):
+    manager = ProxyManager(AsyncMock())
+
+    with (
+        patch("proxy.TCPProxy.start", new_callable=AsyncMock),
+        patch("proxy.TCPProxy.stop", new_callable=AsyncMock),
+        patch("socket.socket"),
+    ):
+        await manager.start_proxy(9090, 80, db, target_host="127.0.0.1")
+        assert 9090 in manager.proxies
+
+        result = await manager.stop_proxy(9090)
+        assert result is True
+        assert 9090 not in manager.proxies
+
+
+@pytest.mark.asyncio
+async def test_proxy_manager_duplicate_port(db):
+    manager = ProxyManager(AsyncMock())
+
+    with patch("proxy.TCPProxy.start", new_callable=AsyncMock), patch("socket.socket"):
+        await manager.start_proxy(9091, 80, db, target_host="127.0.0.1")
+        # Second start on same port should fail
+        result = await manager.start_proxy(9091, 80, db, target_host="127.0.0.1")
+        assert result is False

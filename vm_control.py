@@ -10,30 +10,31 @@ class VMControl:
 
     async def _run_vmrun(self, args: List[str]) -> tuple[int, str, str]:
         logger.info({"event": "vmrun_command", "args": args})
-        process = await asyncio.create_subprocess_exec(
-            self.vmrun_path,
-            *args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await process.communicate()
-        return process.returncode, stdout.decode().strip(), stderr.decode().strip()
+        try:
+            process = await asyncio.create_subprocess_exec(
+                self.vmrun_path,
+                *args,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await process.communicate()
+            return process.returncode, stdout.decode().strip(), stderr.decode().strip()
+        except FileNotFoundError:
+            logger.error({"event": "vmrun_not_found", "path": self.vmrun_path})
+            return -1, "", f"vmrun.exe not found at {self.vmrun_path}"
+        except Exception as e:
+            logger.error({"event": "vmrun_execution_error", "error": str(e)})
+            return -1, "", str(e)
 
     async def start_vm(self, vmx_path: str, mode: str = "nogui") -> bool:
-        returncode, stdout, stderr = await self._run_vmrun(
-            ["-T", "ws", "start", vmx_path, mode]
-        )
+        returncode, stdout, stderr = await self._run_vmrun(["-T", "ws", "start", vmx_path, mode])
         if returncode != 0:
-            logger.error(
-                {"event": "vmrun_start_failed", "vmx": vmx_path, "error": stderr}
-            )
+            logger.error({"event": "vmrun_start_failed", "vmx": vmx_path, "error": stderr})
             return False
         return True
 
     async def stop_vm(self, vmx_path: str, mode: str = "soft") -> bool:
-        returncode, stdout, stderr = await self._run_vmrun(
-            ["-T", "ws", "stop", vmx_path, mode]
-        )
+        returncode, stdout, stderr = await self._run_vmrun(["-T", "ws", "stop", vmx_path, mode])
         if returncode != 0:
             logger.warning(
                 {
@@ -59,9 +60,7 @@ class VMControl:
         return True
 
     async def restart_vm(self, vmx_path: str, mode: str = "soft") -> bool:
-        returncode, stdout, stderr = await self._run_vmrun(
-            ["-T", "ws", "reset", vmx_path, mode]
-        )
+        returncode, stdout, stderr = await self._run_vmrun(["-T", "ws", "reset", vmx_path, mode])
         if returncode != 0:
             logger.warning(
                 {
@@ -99,9 +98,7 @@ class VMControl:
                 if target_norm == line_norm:
                     return "running"
 
-        logger.debug(
-            {"event": "status_check_stopped", "vmx": vmx_path, "stdout": stdout}
-        )
+        logger.debug({"event": "status_check_stopped", "vmx": vmx_path, "stdout": stdout})
         return "stopped"
 
     async def get_guest_ip(self, vmx_path: str) -> Optional[str]:
@@ -144,6 +141,7 @@ class VMControl:
 
         # 2. Check VMware's official inventory file in all user profiles
         users_dir = "C:\\Users"
+        user_folders = []
         if os.path.exists(users_dir):
             try:
                 user_folders = os.listdir(users_dir)
@@ -163,9 +161,7 @@ class VMControl:
                 if os.path.exists(inventory_file):
                     logger.info({"event": "reading_inventory", "path": inventory_file})
                     try:
-                        with open(
-                            inventory_file, "r", encoding="utf-8", errors="ignore"
-                        ) as f:
+                        with open(inventory_file, "r", encoding="utf-8", errors="ignore") as f:
                             for line in f:
                                 if ".config =" in line:
                                     path = line.split("=", 1)[1].strip().strip('"')
@@ -201,9 +197,7 @@ class VMControl:
                     for root, dirs, files in os.walk(base_path):
                         for file in files:
                             if file.lower().endswith(".vmx"):
-                                found_vms.append(
-                                    os.path.abspath(os.path.join(root, file))
-                                )
+                                found_vms.append(os.path.abspath(os.path.join(root, file)))
                 except Exception as e:
                     logger.warning(
                         {

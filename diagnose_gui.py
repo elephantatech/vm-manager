@@ -11,9 +11,7 @@ async def run_diagnostics():
         print("--- Starting GUI Diagnostics ---")
 
         # 1. Capture console logs
-        page.on(
-            "console", lambda msg: print(f"BROWSER CONSOLE: [{msg.type}] {msg.text}")
-        )
+        page.on("console", lambda msg: print(f"BROWSER CONSOLE: [{msg.type}] {msg.text}"))
 
         # 2. Capture network requests
         page.on(
@@ -27,8 +25,8 @@ async def run_diagnostics():
 
         try:
             # 3. Navigate to app
-            print("Navigating to http://localhost:8002...")
-            await page.goto("http://localhost:8002")
+            print("Navigating to http://localhost:8000...")
+            await page.goto("http://localhost:8000")
 
             # 4. Login
             print("Attempting login...")

@@ -16,3 +16,14 @@ def test_proxy_model_creation():
 def test_user_model_permissions():
     user = User(username="admin", permissions="*")
     assert user.permissions == "*"
+
+
+def test_user_model_new_fields():
+    user = User(
+        username="testuser",
+        permissions="vm:read",
+        must_change_password=True,
+        password_version=2,
+    )
+    assert user.must_change_password is True
+    assert user.password_version == 2

@@ -13,9 +13,7 @@ def setup_logger(name="vm_manager"):
     logger.setLevel(level)
 
     logHandler = logging.FileHandler("vm_manager.log")
-    formatter = jsonlogger.JsonFormatter(
-        "%(asctime)s %(name)s %(levelname)s %(message)s"
-    )
+    formatter = jsonlogger.JsonFormatter("%(asctime)s %(name)s %(levelname)s %(message)s")
     logHandler.setFormatter(formatter)
     logger.addHandler(logHandler)
 

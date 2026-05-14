@@ -17,11 +17,7 @@ class PortRegistry:
             return False
 
         # 2. Check Database for persistent reservations/blocks
-        reserved = (
-            db.query(db_mod.ReservedPort)
-            .filter(db_mod.ReservedPort.port == port)
-            .first()
-        )
+        reserved = db.query(db_mod.ReservedPort).filter(db_mod.ReservedPort.port == port).first()
         if reserved:
             return False
 
@@ -58,9 +54,7 @@ class TCPProxy:
         self.server: Optional[asyncio.Server] = None
         self._running = False
 
-    async def _handle_client(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ):
+    async def _handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         target_ip = self.target_host
 
         if self.vm_id and self.get_vm_ip_func:
@@ -121,9 +115,7 @@ class TCPProxy:
         await self._add_firewall_rule()
 
         try:
-            self.server = await asyncio.start_server(
-                self._handle_client, "0.0.0.0", self.host_port
-            )
+            self.server = await asyncio.start_server(self._handle_client, "0.0.0.0", self.host_port)
             self._running = True
             logger.info(
                 {
@@ -134,9 +126,7 @@ class TCPProxy:
             )
             asyncio.create_task(self.server.serve_forever())
         except Exception as e:
-            logger.error(
-                {"event": "proxy_start_failed", "port": self.host_port, "error": str(e)}
-            )
+            logger.error({"event": "proxy_start_failed", "port": self.host_port, "error": str(e)})
             await self._remove_firewall_rule()
             raise e
 

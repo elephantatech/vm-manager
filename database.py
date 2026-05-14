@@ -1,12 +1,16 @@
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, ForeignKey, text
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, relationship
+
+from logger_config import logger
 
 DATABASE_URL = "sqlite:///./vm_manager.db"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class User(Base):
@@ -15,6 +19,8 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     permissions = Column(String, default="vm:read")  # Comma separated permissions
+    must_change_password = Column(Boolean, default=False)
+    password_version = Column(Integer, default=0)
 
 
 class VM(Base):
@@ -48,5 +54,29 @@ class ReservedPort(Base):
     description = Column(String, nullable=True)
 
 
+def _run_migrations(engine):
+    """Add new columns to existing tables for SQLite (no Alembic needed)."""
+    migrations = [
+        ("users", "must_change_password", "BOOLEAN DEFAULT 0"),
+        ("users", "password_version", "INTEGER DEFAULT 0"),
+    ]
+    with engine.connect() as conn:
+        for table, column, col_type in migrations:
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+                conn.commit()
+                logger.info(
+                    {
+                        "event": "migration_applied",
+                        "table": table,
+                        "column": column,
+                    }
+                )
+            except Exception:
+                # Column already exists — expected on subsequent runs
+                conn.rollback()
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
+    _run_migrations(engine)
