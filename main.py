@@ -10,8 +10,8 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from jose import jwt
+from pydantic import BaseModel, Field, model_validator
+from jose import jwt, JWTError
 
 from logger_config import logger
 from security import (
@@ -79,20 +79,29 @@ class PasswordChange(BaseModel):
 
 
 class VMCreate(BaseModel):
-    name: str
-    path: str
+    name: str = Field(min_length=1, max_length=255)
+    path: str = Field(min_length=1)
 
 
 class ProxyCreate(BaseModel):
-    host_port: int
-    target_port: int
+    host_port: int = Field(ge=1, le=65535)
+    target_port: int = Field(ge=1, le=65535)
     vm_id: Optional[str] = None
     target_host: Optional[str] = None
 
+    @model_validator(mode="after")
+    def _exactly_one_target(self):
+        # A proxy targets either a VM (by vm_id, resolved via vmrun) or a static
+        # host (by target_host). Allowing both or neither would let invalid rows
+        # reach the DB where they cannot be honored at runtime.
+        if bool(self.vm_id) == bool(self.target_host):
+            raise ValueError("Specify exactly one of vm_id or target_host")
+        return self
+
 
 class PortBlock(BaseModel):
-    port: int
-    description: str
+    port: int = Field(ge=1, le=65535)
+    description: str = Field(min_length=1, max_length=255)
 
 
 # --- App Setup ---
@@ -218,17 +227,17 @@ async def get_current_user(
 ) -> db_mod.User:
     try:
         payload = jwt.decode(token, security_mod.SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if not username:
-            raise HTTPException(status_code=401)
-    except Exception:
+    except JWTError:
+        raise HTTPException(status_code=401)
+    username = payload.get("sub")
+    if not username:
         raise HTTPException(status_code=401)
     user = db.query(db_mod.User).filter(db_mod.User.username == username).first()
     if not user:
         raise HTTPException(status_code=401)
-    # Check password version matches token
-    token_pw_ver = payload.get("pw_ver", 0)
-    if token_pw_ver != (user.password_version or 0):
+    # Tokens carry pw_ver; a mismatch means the user changed their password
+    # after this token was issued (or it's older than the column existed).
+    if payload.get("pw_ver", 0) != user.password_version:
         raise HTTPException(status_code=401, detail="Token revoked")
     return user
 
@@ -277,24 +286,26 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    # Rate limiting
+    # Rate limiting. Prune entries older than the window, and drop the key
+    # entirely if empty so the dict doesn't grow without bound across IPs.
     client_ip = request.client.host
     now = time.time()
-    # Clean old entries
-    login_attempts[client_ip] = [
-        t for t in login_attempts[client_ip] if now - t < LOGIN_RATE_WINDOW
-    ]
-    if len(login_attempts[client_ip]) >= LOGIN_RATE_LIMIT:
+    recent = [t for t in login_attempts.get(client_ip, []) if now - t < LOGIN_RATE_WINDOW]
+    if recent:
+        login_attempts[client_ip] = recent
+    else:
+        login_attempts.pop(client_ip, None)
+    if len(recent) >= LOGIN_RATE_LIMIT:
         raise HTTPException(status_code=429, detail="Too many login attempts")
 
     user = db.query(db_mod.User).filter(db_mod.User.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
-        login_attempts[client_ip].append(now)
+        login_attempts.setdefault(client_ip, []).append(now)
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
     return {
         "access_token": create_access_token(
-            {"sub": user.username, "pw_ver": user.password_version or 0}
+            {"sub": user.username, "pw_ver": user.password_version}
         ),
         "token_type": "bearer",
         "permissions": user.permissions,
@@ -312,7 +323,8 @@ async def change_pwd(
         raise HTTPException(status_code=400, detail="Wrong old password")
     current_user.hashed_password = hash_password(data.new_password)
     current_user.must_change_password = False
-    current_user.password_version = (current_user.password_version or 0) + 1
+    # Invalidate every existing JWT for this user — they all carry the old pw_ver.
+    current_user.password_version = current_user.password_version + 1
     db.commit()
     return {
         "status": "success",
@@ -449,6 +461,8 @@ async def delete_vm(
             await proxy_manager.stop_proxy(proxy.host_port)
         db.delete(vm)
         db.commit()
+        # Drop the operation lock so we don't leak entries forever.
+        vm_locks.pop(vm_id, None)
     return {"status": "success"}
 
 
@@ -626,8 +640,16 @@ async def create_proxy(
             )
         )
         db.commit()
-    except Exception:
-        # Clean up the running proxy if DB insert fails
+    except Exception as e:
+        # Persist failed after the proxy was already running — tear it down so
+        # we don't leak a listening socket and firewall rule with no DB record.
+        logger.error(
+            {
+                "event": "proxy_db_insert_failed",
+                "port": data.host_port,
+                "error": str(e),
+            }
+        )
         await proxy_manager.stop_proxy(data.host_port)
         raise
     return {"status": "success"}

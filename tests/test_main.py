@@ -353,3 +353,166 @@ def test_block_port_with_body(client):
 
     registry = client.get("/api/registry").json()
     assert any(p["port"] == 8888 for p in registry)
+
+
+# --- New Tests: Forced Password Change Blocks Other Endpoints ---
+
+
+def _override_with_user(user_id):
+    """Build a get_current_user override that pulls the user from the SAME
+    request-scoped db session the endpoint uses — otherwise mutations on the
+    returned object would be attached to a different session and never persist."""
+    from fastapi import Depends
+
+    def _get(db=Depends(main.get_db)):
+        return db.query(db_mod.User).filter(db_mod.User.id == user_id).first()
+
+    return _get
+
+
+def test_must_change_password_blocks_endpoints(client):
+    """Endpoints (except /token and change-password) must 403 while
+    must_change_password=True."""
+    db = TestingSessionLocal()
+    user = db_mod.User(
+        username="forced",
+        hashed_password=security_mod.hash_password("pw"),
+        permissions="*",
+        password_version=0,
+        must_change_password=True,
+    )
+    db.add(user)
+    db.commit()
+    user_id = user.id
+    db.close()
+
+    main.app.dependency_overrides[main.get_current_user] = _override_with_user(user_id)
+    try:
+        for path, method in [
+            ("/api/vms", "GET"),
+            ("/api/users", "GET"),
+            ("/api/registry", "GET"),
+            ("/api/proxies", "GET"),
+        ]:
+            response = client.request(method, path)
+            assert response.status_code == 403, (
+                f"{method} {path} should 403 while must_change_password=True"
+            )
+            assert "Password change required" in response.json()["detail"]
+
+        # change-password should still work
+        response = client.post(
+            "/api/user/change-password",
+            json={"old_password": "pw", "new_password": "newpw"},
+        )
+        assert response.status_code == 200
+    finally:
+        main.app.dependency_overrides[main.get_current_user] = override_get_current_user
+
+
+def test_password_change_increments_version(client):
+    """Changing password must bump password_version so old tokens are revoked."""
+    db = TestingSessionLocal()
+    user = db_mod.User(
+        username="pwbump",
+        hashed_password=security_mod.hash_password("old"),
+        permissions="*",
+        password_version=2,
+    )
+    db.add(user)
+    db.commit()
+    user_id = user.id
+    db.close()
+
+    main.app.dependency_overrides[main.get_current_user] = _override_with_user(user_id)
+    try:
+        response = client.post(
+            "/api/user/change-password",
+            json={"old_password": "old", "new_password": "newpw"},
+        )
+        assert response.status_code == 200
+
+        db = TestingSessionLocal()
+        refreshed = db.query(db_mod.User).filter(db_mod.User.id == user_id).first()
+        assert refreshed.password_version == 3
+        assert refreshed.must_change_password is False
+        db.close()
+    finally:
+        main.app.dependency_overrides[main.get_current_user] = override_get_current_user
+
+
+# --- New Tests: Token Revocation via Stale pw_ver ---
+
+
+def test_token_with_stale_pw_ver_rejected(client):
+    """A token issued at pw_ver=0 must be rejected after the user's
+    password_version is incremented."""
+    from security import create_access_token
+
+    db = TestingSessionLocal()
+    user = db_mod.User(
+        username="revoke",
+        hashed_password=security_mod.hash_password("pw"),
+        permissions="*",
+        password_version=5,
+    )
+    db.add(user)
+    db.commit()
+    db.close()
+
+    # Issue a token with a stale pw_ver
+    stale_token = create_access_token({"sub": "revoke", "pw_ver": 0})
+
+    # Remove the override so the real get_current_user runs
+    main.app.dependency_overrides.pop(main.get_current_user, None)
+    try:
+        response = client.get("/api/vms", headers={"Authorization": f"Bearer {stale_token}"})
+        assert response.status_code == 401
+        assert response.json()["detail"] == "Token revoked"
+
+        # Current token should work
+        current = create_access_token({"sub": "revoke", "pw_ver": 5})
+        response = client.get("/api/vms", headers={"Authorization": f"Bearer {current}"})
+        assert response.status_code == 200
+    finally:
+        main.app.dependency_overrides[main.get_current_user] = override_get_current_user
+
+
+# --- New Tests: ProxyCreate Validator ---
+
+
+def test_proxy_create_rejects_neither_target(client):
+    """ProxyCreate must reject {vm_id=None, target_host=None}."""
+    response = client.post("/api/proxies", json={"host_port": 9000, "target_port": 80})
+    assert response.status_code == 422
+    body = response.json()
+    assert any("vm_id or target_host" in str(err).lower() for err in body["detail"])
+
+
+def test_proxy_create_rejects_both_targets(client):
+    """ProxyCreate must reject when both vm_id and target_host are set."""
+    response = client.post(
+        "/api/proxies",
+        json={
+            "host_port": 9000,
+            "target_port": 80,
+            "vm_id": "some-id",
+            "target_host": "127.0.0.1",
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_proxy_create_rejects_invalid_port(client):
+    """ProxyCreate must reject ports outside 1-65535."""
+    response = client.post(
+        "/api/proxies",
+        json={"host_port": 0, "target_port": 80, "target_host": "127.0.0.1"},
+    )
+    assert response.status_code == 422
+
+    response = client.post(
+        "/api/proxies",
+        json={"host_port": 70000, "target_port": 80, "target_host": "127.0.0.1"},
+    )
+    assert response.status_code == 422

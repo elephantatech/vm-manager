@@ -112,7 +112,14 @@ class TCPProxy:
         if self._running:
             return
 
-        await self._add_firewall_rule()
+        # If the firewall rule cannot be added, the listener would still come up
+        # but LAN clients would be silently blocked — exactly the failure mode
+        # the system is meant to prevent. Fail loud instead.
+        if not await self._add_firewall_rule():
+            raise RuntimeError(
+                f"Failed to add firewall rule for port {self.host_port} "
+                f"(requires administrator privileges)"
+            )
 
         try:
             self.server = await asyncio.start_server(self._handle_client, "0.0.0.0", self.host_port)
@@ -142,23 +149,47 @@ class TCPProxy:
         self._running = False
         logger.info({"event": "proxy_stopped", "port": self.host_port})
 
-    async def _add_firewall_rule(self):
+    async def _add_firewall_rule(self) -> bool:
         rule_name = f"VMProxy_{self.host_port}"
         cmd = f'netsh advfirewall firewall add rule name="{rule_name}" dir=in action=allow protocol=TCP localport={self.host_port} remoteip=localsubnet'
         logger.debug({"event": "firewall_add_rule", "command": cmd})
         process = await asyncio.create_subprocess_shell(
             cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
-        await process.communicate()
+        _, stderr = await process.communicate()
+        if process.returncode != 0:
+            logger.error(
+                {
+                    "event": "firewall_add_rule_failed",
+                    "port": self.host_port,
+                    "returncode": process.returncode,
+                    "stderr": stderr.decode("utf-8", errors="ignore"),
+                }
+            )
+            return False
+        return True
 
-    async def _remove_firewall_rule(self):
+    async def _remove_firewall_rule(self) -> bool:
         rule_name = f"VMProxy_{self.host_port}"
         cmd = f'netsh advfirewall firewall delete rule name="{rule_name}"'
         logger.debug({"event": "firewall_remove_rule", "command": cmd})
         process = await asyncio.create_subprocess_shell(
             cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
-        await process.communicate()
+        _, stderr = await process.communicate()
+        if process.returncode != 0:
+            # Removal failure is non-fatal but worth knowing — usually means the rule
+            # was already gone or netsh isn't installed.
+            logger.warning(
+                {
+                    "event": "firewall_remove_rule_failed",
+                    "port": self.host_port,
+                    "returncode": process.returncode,
+                    "stderr": stderr.decode("utf-8", errors="ignore"),
+                }
+            )
+            return False
+        return True
 
 
 class ProxyManager:
@@ -194,7 +225,15 @@ class ProxyManager:
             self.proxies[host_port] = proxy
             self.registry.register(host_port)
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(
+                {
+                    "event": "start_proxy_failed",
+                    "port": host_port,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+            )
             return False
 
     async def stop_proxy(self, host_port: int):

@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine, Column, String, Integer, Boolean, ForeignKey, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, sessionmaker, relationship
 
 from logger_config import logger
@@ -19,8 +20,9 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     permissions = Column(String, default="vm:read")  # Comma separated permissions
-    must_change_password = Column(Boolean, default=False)
-    password_version = Column(Integer, default=0)
+    must_change_password = Column(Boolean, nullable=False, default=False, server_default="0")
+    # Incremented on password change to invalidate every existing JWT for this user.
+    password_version = Column(Integer, nullable=False, default=0, server_default="0")
 
 
 class VM(Base):
@@ -54,26 +56,49 @@ class ReservedPort(Base):
     description = Column(String, nullable=True)
 
 
+# SQLite error fragments emitted when ALTER TABLE ADD COLUMN hits an existing column.
+# We must distinguish this expected case from real failures (disk full, locked DB,
+# permission errors) — otherwise a broken upgrade silently looks like success.
+_DUPLICATE_COLUMN_FRAGMENTS = ("duplicate column name", "already exists")
+
+
 def _run_migrations(engine):
-    """Add new columns to existing tables for SQLite (no Alembic needed)."""
+    """Add new columns to existing tables for SQLite (no Alembic needed).
+
+    SQLite lacks portable column introspection across versions, so we try the
+    ALTER TABLE and treat only the "column already exists" error as success.
+    """
     migrations = [
-        ("users", "must_change_password", "BOOLEAN DEFAULT 0"),
-        ("users", "password_version", "INTEGER DEFAULT 0"),
+        ("users", "must_change_password", "BOOLEAN NOT NULL DEFAULT 0"),
+        ("users", "password_version", "INTEGER NOT NULL DEFAULT 0"),
     ]
     with engine.connect() as conn:
         for table, column, col_type in migrations:
             try:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
                 conn.commit()
-                logger.info(
-                    {
-                        "event": "migration_applied",
-                        "table": table,
-                        "column": column,
-                    }
-                )
-            except Exception:
-                # Column already exists — expected on subsequent runs
+                logger.info({"event": "migration_applied", "table": table, "column": column})
+            except OperationalError as e:
+                conn.rollback()
+                msg = str(e).lower()
+                if not any(frag in msg for frag in _DUPLICATE_COLUMN_FRAGMENTS):
+                    logger.error(
+                        {
+                            "event": "migration_failed",
+                            "table": table,
+                            "column": column,
+                            "error": str(e),
+                        }
+                    )
+                    raise
+
+        # Backfill NULLs that may exist from pre-migration databases where the
+        # column was added with a non-enforced default.
+        for col in ("must_change_password", "password_version"):
+            try:
+                conn.execute(text(f"UPDATE users SET {col} = 0 WHERE {col} IS NULL"))
+                conn.commit()
+            except OperationalError:
                 conn.rollback()
 
 
