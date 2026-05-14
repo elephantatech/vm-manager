@@ -5,100 +5,271 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VMware Web Manager</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1 { color: #2c3e50; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; transition: background 0.2s; }
-        .btn-primary { background: #3498db; color: white; }
-        .btn-primary:hover { background: #2980b9; }
-        .btn-danger { background: #e74c3c; color: white; }
-        .btn-danger:hover { background: #c0392b; }
-        .btn-success { background: #2ecc71; color: white; }
-        .btn-success:hover { background: #27ae60; }
-        .btn-secondary { background: #95a5a6; color: white; }
-        .btn-secondary:hover { background: #7f8c8d; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
-        .status-running { color: #2ecc71; font-weight: bold; }
-        .status-stopped { color: #e74c3c; font-weight: bold; }
-        #login-form { max-width: 300px; margin: 100px auto; }
-        input[type="text"], input[type="password"], input[type="number"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        .proxy-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-top: 1px solid #f9f9f9; }
-        .hidden { display: none; }
+        :root {
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #0f172a;
+            --primary-hover: #334155;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+            --success-hover: #059669;
+            --secondary: #f1f5f9;
+            --secondary-hover: #e2e8f0;
+            --radius: 6px;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container { max-width: 1024px; margin: 0 auto; padding: 24px; }
+        h1, h2, h3, h4, h5 { margin-top: 0; font-weight: 600; color: var(--text-main); }
+        h1 { font-size: 1.5rem; margin-bottom: 0; }
+        h2 { font-size: 1.25rem; margin-bottom: 1rem; }
+        h3 { font-size: 1.1rem; margin-bottom: 0; }
+        h4 { font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
+
+        .card { background: var(--surface); padding: 24px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); margin-bottom: 24px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;}
+
+        .btn { padding: 8px 14px; border: 1px solid transparent; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 500; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+        .btn-danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
+        .btn-danger:hover:not(:disabled) { background: var(--danger); color: white; }
+        .btn-success { background: var(--surface); color: var(--success); border-color: var(--success); }
+        .btn-success:hover:not(:disabled) { background: var(--success); color: white; }
+        .btn-secondary { background: var(--surface); color: var(--text-main); border-color: var(--border); }
+        .btn-secondary:hover:not(:disabled) { background: var(--secondary-hover); }
+
+        input[type="text"], input[type="password"], input[type="number"], select {
+            width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.875rem; transition: border-color 0.15s; background: var(--surface); color: var(--text-main);
+        }
+        input:focus, select:focus { outline: none; border-color: var(--text-muted); }
+        .input-group { margin-bottom: 12px; width: 100%; }
+        .input-group label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-muted); font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+
+        .status-running { color: var(--success); font-weight: 600; }
+        .status-stopped { color: var(--text-muted); font-weight: 600; }
+
+        .proxy-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.875rem; flex-wrap: wrap; gap: 12px; }
+        .proxy-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+        .hidden { display: none !important; }
+
+        /* Flex Utilities */
+        .flex { display: flex; }
+        .flex-wrap { flex-wrap: wrap; }
+        .items-center { align-items: center; }
+        .items-end { align-items: flex-end; }
+        .justify-between { justify-content: space-between; }
+        .gap-2 { gap: 8px; }
+        .gap-3 { gap: 12px; }
+        .mt-4 { margin-top: 16px; }
+        .mb-4 { margin-bottom: 16px; }
+        .w-full { width: 100%; }
+
+        .grid-responsive { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+
+        .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 16px; }
+        .nav-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .empty-state { text-align: center; padding: 32px; color: var(--text-muted); font-size: 0.875rem; background: var(--bg); border-radius: var(--radius); border: 1px dashed var(--border); }
+        .section-divider { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 16px; }
+
+        /* Responsive Overrides */
+        @media (max-width: 640px) {
+            .header-bar { flex-direction: column; align-items: flex-start; }
+            .nav-tabs { width: 100%; }
+            .nav-tabs .btn { flex-grow: 1; }
+            .flex-responsive { flex-direction: column; align-items: stretch !important; }
+            .flex-responsive > div, .flex-responsive > button { width: 100%; }
+            .proxy-item { flex-direction: column; align-items: flex-start; }
+            .proxy-item > div { width: 100%; display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 8px; }
+
+            /* Responsive Table */
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { border: 1px solid var(--border); margin-bottom: 12px; border-radius: var(--radius); padding: 8px; background: var(--surface); }
+            td { border: none; position: relative; padding-left: 45%; text-align: left; padding-bottom: 8px; }
+            td:last-child { padding-bottom: 12px; }
+            td:before { position: absolute; top: 12px; left: 12px; width: 40%; padding-right: 10px; white-space: nowrap; font-weight: 600; color: var(--text-muted); content: attr(data-label); font-size: 0.75rem; text-transform: uppercase; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div id="login-view" class="card">
-            <h2>Login</h2>
-            <input type="text" id="username" placeholder="Username">
-            <input type="password" id="password" placeholder="Password">
-            <button class="btn btn-primary" onclick="login()">Login</button>
-            <p id="login-error" style="color: red;"></p>
+        <!-- Login View -->
+        <div id="login-view" class="card" style="max-width: 400px; margin: 40px auto;">
+            <h2 style="text-align: center;">System Login</h2>
+            <div class="input-group">
+                <label>Username</label>
+                <input type="text" id="username" placeholder="admin">
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary w-full mt-4" onclick="login()">Authenticate</button>
+            <p id="login-error" style="color: var(--danger); font-size: 0.875rem; text-align: center; margin-top: 12px;"></p>
         </div>
 
+        <!-- Main Dashboard View -->
         <div id="main-view" class="hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="header-bar">
                 <h1>VMware Web Manager</h1>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-secondary" onclick="showSettings()">Settings / Profile</button>
-                    <button class="btn btn-secondary" onclick="logout()">Logout</button>
+                <div class="nav-tabs">
+                    <button class="btn btn-secondary" onclick="switchView('dashboard')">Dashboard</button>
+                    <button class="btn btn-secondary" onclick="switchView('profile')">Profile</button>
+                    <button id="nav-settings-btn" class="btn btn-secondary hidden" onclick="switchView('settings')">Settings</button>
+                    <button class="btn btn-danger" onclick="logout()">Logout</button>
                 </div>
             </div>
 
-            <div id="settings-view" class="card hidden">
-                <h3>Account & Security</h3>
-                <div style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
-                    <h4>Change Password</h4>
-                    <input type="password" id="old-pass" placeholder="Old Password">
-                    <input type="password" id="new-pass" placeholder="New Password">
-                    <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
-                </div>
-
-                <div id="admin-user-section" class="hidden">
-                    <h4>User Management (Admin Only)</h4>
-                    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 400px;">
-                        <input type="text" id="new-user-name" placeholder="Username">
-                        <input type="password" id="new-user-pass" placeholder="Password">
-                        <select id="new-user-perms" style="padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
-                            <option value="admin">Admin (All Permissions)</option>
-                            <option value="vm_manager">VM Manager (Add/Scan/Control/Ports)</option>
-                            <option value="vm_operator">VM Operator (Control/Toggle Ports)</option>
-                            <option value="viewer">Viewer (Read Only)</option>
-                        </select>
-                        <button class="btn btn-success" onclick="createUser()">Create User</button>
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view">
+                <!-- Generic Proxy Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Host Services</h3>
+                        <button class="btn btn-secondary scan-reg-btn" onclick="scanRegistry()">Scan Host Services</button>
+                    </div>
+                    <div class="flex flex-responsive gap-3 mb-4 items-end">
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <label>Host Port</label>
+                            <input type="number" id="gen-host-port" placeholder="e.g. 8080">
+                        </div>
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <label>Target Host</label>
+                            <input type="text" id="gen-target-host" value="127.0.0.1">
+                        </div>
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <label>Target Port</label>
+                            <input type="number" id="gen-target-port" placeholder="e.g. 80">
+                        </div>
+                        <button class="btn btn-primary" onclick="createGenericProxy()">Expose Port</button>
+                    </div>
+                    <div id="generic-proxy-list">
+                        <!-- Generic proxies loaded here -->
                     </div>
                 </div>
-                <button class="btn btn-secondary" style="margin-top: 15px;" onclick="hideSettings()">Back to Dashboard</button>
+
+                <!-- VM Management Section -->
+                <div class="card">
+                    <div class="card-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0;">
+                        <h3>Virtual Machines</h3>
+                        <button id="scan-vms-btn" class="btn btn-secondary" onclick="scanVMs()">Discover VMs</button>
+                    </div>
+
+                    <div id="scan-results" class="hidden section-divider">
+                        <h4>Discovered Inventory</h4>
+                        <div id="discovered-list"></div>
+                    </div>
+
+                    <div class="section-divider">
+                        <h4>Manual Registration</h4>
+                        <div class="flex flex-responsive gap-3 items-end">
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Name</label>
+                                <input type="text" id="new-vm-name" placeholder="e.g. Ubuntu Server">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0; flex-grow: 2;">
+                                <label>VMX Path</label>
+                                <input type="text" id="new-vm-path" placeholder="C:\Virtual Machines\Ubuntu\Ubuntu.vmx">
+                            </div>
+                            <button class="btn btn-primary" onclick="addVM()">Register</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="vm-list">
+                    <!-- Managed VMs loaded here -->
+                </div>
+
+                <!-- Port Registry Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Port Registry</h3>
+                        <div class="flex gap-2">
+                            <button class="btn btn-secondary scan-reg-btn" onclick="scanRegistry()">Scan Ports</button>
+                            <button class="btn btn-secondary" onclick="loadRegistry()">Refresh</button>
+                        </div>
+                    </div>
+                    <div id="registry-view" style="margin-top: 10px;"></div>
+                </div>
             </div>
 
-            <div class="card">
-                <h3>Add New VM</h3>
-                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                    <input type="text" id="new-vm-name" placeholder="VM Name (e.g. Ubuntu Server)">
-                    <input type="text" id="new-vm-path" placeholder="Full path to .vmx file">
-                    <button class="btn btn-primary" onclick="addVM()">Add VM</button>
+            <!-- Profile View -->
+            <div id="view-profile" class="card view hidden" style="max-width: 500px; margin: 0 auto;">
+                <div class="card-header">
+                    <h3>My Profile</h3>
                 </div>
-                <button class="btn btn-secondary" onclick="scanVMs()">Scan for VMs in common paths</button>
-                <div id="scan-results" class="hidden" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-                    <h4>Discovered VMs</h4>
-                    <div id="discovered-list"></div>
+                <p id="force-change-notice" class="hidden" style="color: var(--danger); font-weight: 600; margin-bottom: 12px;">You must change your password before continuing.</p>
+                <div class="input-group">
+                    <label>Current Password</label>
+                    <input type="password" id="old-pass" placeholder="••••••••">
                 </div>
-            </div>
-
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3>Port Registry</h3>
-                    <button class="btn btn-secondary" onclick="loadRegistry()">Refresh Registry</button>
+                <div class="input-group">
+                    <label>New Password</label>
+                    <input type="password" id="new-pass" placeholder="••••••••">
                 </div>
-                <div id="registry-view" style="margin-top: 10px;">
-                    <p>Click refresh to see active port allocations.</p>
+                <div class="flex gap-2 mt-4">
+                    <button class="btn btn-primary" onclick="changePassword()">Update Security</button>
+                    <button id="cancel-profile-btn" class="btn btn-secondary" onclick="switchView('dashboard')">Cancel</button>
                 </div>
             </div>
 
-            <div id="vm-list">
-                <!-- VMs will be loaded here -->
+            <!-- Settings View (Admin) -->
+            <div id="view-settings" class="card view hidden" style="max-width: 600px; margin: 0 auto;">
+                <div class="card-header">
+                    <h3>System Administration</h3>
+                </div>
+                <div id="admin-user-section">
+                    <h4>Provision Account</h4>
+                    <div class="grid-responsive mb-4">
+                        <div class="input-group">
+                            <label>Username</label>
+                            <input type="text" id="new-user-name" placeholder="operator_jane">
+                        </div>
+                        <div class="input-group">
+                            <label>Password</label>
+                            <input type="password" id="new-user-pass" placeholder="••••••••">
+                        </div>
+                    </div>
+                    <div class="input-group mb-4">
+                        <label>Access Level</label>
+                        <select id="new-user-perms">
+                            <option value="admin">Administrator (Full Access)</option>
+                            <option value="vm_manager">VM Manager (Modify & Control)</option>
+                            <option value="vm_operator">VM Operator (Control Only)</option>
+                            <option value="viewer">Viewer (Read Only)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-success" onclick="createUser()">Provision User</button>
+
+                    <div class="section-divider">
+                        <h4>Active Accounts</h4>
+                        <div id="user-list">
+                            <!-- User list for admin -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -106,104 +277,218 @@
     <script>
         let token = localStorage.getItem('token');
 
+        // --- Helpers ---
+
+        function escapeHtml(str) {
+            if (str == null) return '';
+            const div = document.createElement('div');
+            div.appendChild(document.createTextNode(String(str)));
+            return div.innerHTML;
+        }
+
+        function parseJwt(tok) {
+            try {
+                const base64Url = tok.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+                    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+                ).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function getPermissions() {
+            if (!token) return '';
+            const payload = parseJwt(token);
+            return payload ? (payload.permissions || '') : '';
+        }
+
+        function hasPermission(perm) {
+            if (!token) return false;
+            const payload = parseJwt(token);
+            if (!payload) return false;
+            // Permissions come from the login response stored separately
+            // since the JWT sub only has username; use the stored perms
+            const perms = localStorage.getItem('_perms') || '';
+            return perms === '*' || perms.split(',').includes(perm);
+        }
+
+        // --- API helper ---
+
         async function api(endpoint, method = 'GET', body = null) {
             const options = {
                 method,
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             };
             if (body) {
-                if (body instanceof FormData) {
-                    options.body = body;
-                } else {
-                    options.headers['Content-Type'] = 'application/json';
-                    options.body = JSON.stringify(body);
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+            try {
+                const response = await fetch(endpoint, options);
+                if (response.status === 401) { logout(); return null; }
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({ detail: 'Request failed' }));
+                    alert('Error: ' + (err.detail || response.statusText));
+                    return null;
                 }
+                return await response.json();
+            } catch (e) {
+                alert('Network error: ' + e.message);
+                return null;
             }
-            const response = await fetch(endpoint, options);
-            if (response.status === 401) {
-                logout();
-                return;
-            }
-            return response.json();
         }
+
+        // --- Auth ---
 
         async function login() {
             const formData = new FormData();
             formData.append('username', document.getElementById('username').value);
             formData.append('password', document.getElementById('password').value);
-
-            const response = await fetch('/token', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                token = data.access_token;
-                localStorage.setItem('token', token);
-                localStorage.setItem('permissions', data.permissions);
-                showMain();
-            } else {
-                document.getElementById('login-error').innerText = 'Login failed. Check credentials.';
+            try {
+                const response = await fetch('/token', { method: 'POST', body: formData });
+                if (response.ok) {
+                    const data = await response.json();
+                    token = data.access_token;
+                    localStorage.setItem('token', token);
+                    // Store permissions from server response (authoritative)
+                    localStorage.setItem('_perms', data.permissions);
+                    document.getElementById('login-error').innerText = '';
+                    if (data.must_change_password) {
+                        showMain(true);
+                    } else {
+                        showMain(false);
+                    }
+                } else {
+                    const err = await response.json().catch(() => ({ detail: 'Authentication failed' }));
+                    document.getElementById('login-error').innerText = err.detail || 'Authentication failed. Verify credentials.';
+                }
+            } catch (e) {
+                document.getElementById('login-error').innerText = 'Network error: ' + e.message;
             }
         }
 
         function logout() {
-            localStorage.removeItem('token');
+            localStorage.clear();
             token = null;
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('main-view').classList.add('hidden');
         }
 
-        function showMain() {
+        function showMain(forcePasswordChange) {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('main-view').classList.remove('hidden');
-            loadVMs();
+
+            const perms = localStorage.getItem('_perms') || '';
+            if (perms === '*' || perms.includes('user:manage')) {
+                document.getElementById('nav-settings-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('nav-settings-btn').classList.add('hidden');
+            }
+
+            if (forcePasswordChange) {
+                switchView('profile');
+                document.getElementById('force-change-notice').classList.remove('hidden');
+                document.getElementById('cancel-profile-btn').classList.add('hidden');
+            } else {
+                document.getElementById('force-change-notice').classList.add('hidden');
+                document.getElementById('cancel-profile-btn').classList.remove('hidden');
+                switchView('dashboard');
+            }
         }
+
+        function switchView(viewName) {
+            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+            if (viewName === 'dashboard') loadAll();
+            if (viewName === 'settings') loadUsers();
+        }
+
+        async function loadAll() {
+            await Promise.all([loadVMs(), loadRegistry()]);
+        }
+
+        // --- Users ---
+
+        async function loadUsers() {
+            const users = await api('/api/users');
+            if (!users) return;
+            const container = document.getElementById('user-list');
+            container.innerHTML = '';
+            if (users.length === 0) {
+                container.innerHTML = '<div class="empty-state">No users found.</div>';
+            }
+            users.forEach(u => {
+                const item = document.createElement('div');
+                item.className = 'proxy-item';
+                item.innerHTML = `
+                    <span><strong>${escapeHtml(u.username)}</strong> <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 8px; text-transform: uppercase;">${escapeHtml(u.permissions)}</span></span>
+                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="deleteUser(${u.id})">Revoke</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function deleteUser(id) {
+            if (confirm('Revoke access for this user? This cannot be undone.')) {
+                const result = await api(`/api/users/${id}`, 'DELETE');
+                if (result) loadUsers();
+            }
+        }
+
+        // --- VMs ---
 
         async function loadVMs() {
             const vms = await api('/api/vms');
             if (!vms) return;
-
             const container = document.getElementById('vm-list');
-            container.innerHTML = '<h3>Managed Virtual Machines</h3>';
+            container.innerHTML = '';
 
             vms.forEach(vm => {
                 const card = document.createElement('div');
                 card.className = 'card';
+                const eName = escapeHtml(vm.name);
+                const ePath = escapeHtml(vm.path);
+                const eStatus = escapeHtml(vm.status);
                 card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
                         <div>
-                            <strong>${vm.name}</strong><br>
-                            <small>${vm.path}</small><br>
-                            Status: <span class="status-${vm.status}">${vm.status.toUpperCase()}</span>
+                            <h3 style="margin-bottom: 4px;">${eName}</h3>
+                            <span style="color: var(--text-muted); font-size: 0.75rem; font-family: monospace;">${ePath}</span><br>
+                            <span style="font-size: 0.875rem; display: inline-block; margin-top: 8px;">State: <span class="status-${vm.status === 'running' ? 'running' : 'stopped'}">${eStatus.toUpperCase()}</span></span>
                         </div>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="btn btn-success" onclick="controlVM('${vm.id}', 'start')">Start</button>
-                            <button class="btn btn-secondary" onclick="controlVM('${vm.id}', 'restart')">Restart</button>
-                            <button class="btn btn-danger" onclick="controlVM('${vm.id}', 'stop')">Stop</button>
-                            <button class="btn btn-secondary" onclick="deleteVM('${vm.id}')">Remove</button>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="btn btn-success" onclick="controlVM('${escapeHtml(vm.id)}', 'start')" ${vm.status === 'running' ? 'disabled' : ''}>Start</button>
+                            <button class="btn btn-secondary" onclick="controlVM('${escapeHtml(vm.id)}', 'restart')" ${vm.status === 'stopped' ? 'disabled' : ''}>Restart</button>
+                            <button class="btn btn-danger" onclick="controlVM('${escapeHtml(vm.id)}', 'stop')" ${vm.status === 'stopped' ? 'disabled' : ''}>Stop</button>
+                            <button class="btn btn-secondary" onclick="deleteVM('${escapeHtml(vm.id)}')">Unregister</button>
                         </div>
                     </div>
-                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
-                        <strong>Port Forwarding (LAN Only)</strong>
-                        <div id="proxies-${vm.id}">
-                            ${vm.proxies.map(p => `
-                                <div class="proxy-item">
-                                    <span>Host:${p.host_port} &rarr; VM:${p.vm_port} (${p.enabled ? 'Enabled' : 'Disabled'})</span>
-                                    <div>
-                                        <button class="btn btn-secondary" onclick="toggleProxy('${p.id}')">${p.enabled ? 'Disable' : 'Enable'}</button>
-                                        <button class="btn btn-danger" onclick="deleteProxy('${p.id}')">Delete</button>
-                                    </div>
+
+                    <div class="section-divider" style="margin-top: 16px;">
+                        <h4>Port Forwarding Rules</h4>
+                        ${vm.proxies.length === 0 ? '<div class="empty-state" style="padding: 16px; margin-bottom: 12px;">No active forwards</div>' : ''}
+                        ${vm.proxies.map(p => `
+                            <div class="proxy-item">
+                                <span><span style="font-weight:600; color:var(--primary);">Host:${escapeHtml(p.host_port)}</span> &rarr; <span style="font-weight:600;">VM:${escapeHtml(p.vm_port)}</span> <span style="color: ${p.enabled ? 'var(--success)' : 'var(--text-muted)'}; margin-left: 8px;">[${p.enabled ? 'Active' : 'Disabled'}]</span></span>
+                                <div class="flex gap-2">
+                                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="toggleProxy('${escapeHtml(p.id)}')">${p.enabled ? 'Disable' : 'Enable'}</button>
+                                    <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="deleteProxy('${escapeHtml(p.id)}')">Remove</button>
                                 </div>
-                            `).join('')}
-                        </div>
-                        <div style="margin-top: 10px; display: flex; gap: 5px;">
-                            <input type="number" id="host-port-${vm.id}" placeholder="Host Port" style="width: 100px; margin: 0;">
-                            <input type="number" id="vm-port-${vm.id}" placeholder="VM Port" style="width: 100px; margin: 0;">
-                            <button class="btn btn-primary" onclick="createProxy('${vm.id}')">Expose Port</button>
+                            </div>
+                        `).join('')}
+                        <div class="flex flex-responsive gap-2 mt-4 items-end">
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Host Port</label>
+                                <input type="number" id="host-port-${escapeHtml(vm.id)}" placeholder="e.g. 8080">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>VM Port</label>
+                                <input type="number" id="vm-port-${escapeHtml(vm.id)}" placeholder="e.g. 80">
+                            </div>
+                            <button class="btn btn-secondary" onclick="createVMProxy('${escapeHtml(vm.id)}')">Bind Port</button>
                         </div>
                     </div>
                 `;
@@ -211,148 +496,252 @@
             });
         }
 
-        async function addVM() {
-            const name = document.getElementById('new-vm-name').value;
-            const path = document.getElementById('new-vm-path').value;
-            await api(`/api/vms?name=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`, 'POST');
-            loadVMs();
-        }
+        // --- Registry ---
 
-        async function deleteVM(id) {
-            if (confirm('Remove this VM from management?')) {
-                await api(`/api/vms/${id}`, 'DELETE');
-                loadVMs();
+        async function loadRegistry() {
+            const res = await api('/api/registry');
+            const container = document.getElementById('registry-view');
+
+            if (!res || res.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">Registry is clean. No active or blocked ports.</div>
+                    <div class="section-divider">
+                        <h4>Manual Reservation</h4>
+                        <div class="flex flex-responsive gap-3 items-end">
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Port</label>
+                                <input type="number" id="block-port-num" placeholder="e.g. 3306">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0; flex-grow: 2;">
+                                <label>Reason / Process</label>
+                                <input type="text" id="block-port-desc" placeholder="Local MySQL Server">
+                            </div>
+                            <button class="btn btn-secondary" onclick="blockPort()">Reserve</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr><th>Port</th><th>Target / Process</th><th>Type</th><th>State</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            ${res.map(p => `
+                                <tr>
+                                    <td data-label="Port" style="font-weight: 600;">${escapeHtml(p.port)}</td>
+                                    <td data-label="Target">${escapeHtml(p.target)}</td>
+                                    <td data-label="Type">${escapeHtml(p.type)}</td>
+                                    <td data-label="State"><span style="color: ${p.status === 'active' ? 'var(--success)' : 'var(--danger)'}; font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">${escapeHtml(p.status)}</span></td>
+                                    <td data-label="Actions">
+                                        <div class="flex gap-2">
+                                        ${p.status === 'blocked' ? `
+                                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="quickExposePort(${parseInt(p.port) || 0})">Expose</button>
+                                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="unblockPort(${parseInt(p.port) || 0})">Release</button>
+                                        ` : '<span style="color: var(--text-muted); font-size: 0.75rem;">Managed</span>'}
+                                        </div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div class="section-divider">
+                        <h4>Manual Reservation</h4>
+                        <div class="flex flex-responsive gap-3 items-end">
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Port</label>
+                                <input type="number" id="block-port-num" placeholder="e.g. 3306">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0; flex-grow: 2;">
+                                <label>Reason / Process</label>
+                                <input type="text" id="block-port-desc" placeholder="Local MySQL Server">
+                            </div>
+                            <button class="btn btn-secondary" onclick="blockPort()">Reserve</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Update Generic List Section
+            const allProxies = await api('/api/proxies');
+            if (!allProxies) return;
+            const genericList = document.getElementById('generic-proxy-list');
+            const hostProxies = allProxies.filter(p => !p.vm_id);
+
+            if (hostProxies.length === 0) {
+                genericList.innerHTML = '<div class="empty-state" style="padding: 16px;">No host services exposed.</div>';
+            } else {
+                genericList.innerHTML = hostProxies.map(p => `
+                    <div class="proxy-item">
+                        <span><span style="font-weight:600; color:var(--primary);">Host:${escapeHtml(p.host_port)}</span> &rarr; <span style="font-weight:600;">${escapeHtml(p.target_host)}:${escapeHtml(p.vm_port)}</span> <span style="color: ${p.enabled ? 'var(--success)' : 'var(--text-muted)'}; margin-left: 8px;">[${p.enabled ? 'Active' : 'Disabled'}]</span></span>
+                        <div class="flex gap-2">
+                            <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="toggleProxy('${escapeHtml(p.id)}')">${p.enabled ? 'Disable' : 'Enable'}</button>
+                            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="deleteProxy('${escapeHtml(p.id)}')">Remove</button>
+                        </div>
+                    </div>
+                `).join('');
             }
         }
 
+        async function scanRegistry() {
+            const btns = document.querySelectorAll('.scan-reg-btn');
+            btns.forEach(b => { b.innerText = 'Scanning...'; b.disabled = true; });
+
+            const results = await api('/api/registry/scan', 'POST');
+
+            btns.forEach(b => { b.innerText = 'Scan Ports'; b.disabled = false; });
+
+            if (results && Array.isArray(results)) {
+                if (results.length > 0) {
+                    alert(`System identified and reserved ${results.length} occupied ports on the host. Expose them via the registry if needed.`);
+                } else {
+                    alert('No new unmanaged ports identified.');
+                }
+                loadAll();
+            }
+        }
+
+        async function quickExposePort(port) {
+            const target_port = prompt(`Configure destination port on localhost for Host Port ${port}:`, port);
+            if (target_port) {
+                const unblocked = await api(`/api/registry/block/${port}`, 'DELETE');
+                if (unblocked) {
+                    const result = await api('/api/proxies', 'POST', { host_port: port, target_port: parseInt(target_port), target_host: '127.0.0.1' });
+                    if (result) loadAll();
+                }
+            }
+        }
+
+        // --- Proxy Actions ---
+
+        async function createGenericProxy() {
+            const host_port = parseInt(document.getElementById('gen-host-port').value);
+            const target_host = document.getElementById('gen-target-host').value;
+            const target_port = parseInt(document.getElementById('gen-target-port').value);
+            if (!host_port || !target_port) { alert('Please fill in all port fields.'); return; }
+            const result = await api('/api/proxies', 'POST', { host_port, target_port, target_host });
+            if (result) loadAll();
+        }
+
+        async function createVMProxy(vmId) {
+            const host_port = parseInt(document.getElementById(`host-port-${vmId}`).value);
+            const target_port = parseInt(document.getElementById(`vm-port-${vmId}`).value);
+            if (!host_port || !target_port) { alert('Please fill in both port fields.'); return; }
+            const result = await api('/api/proxies', 'POST', { host_port, target_port, vm_id: vmId });
+            if (result) loadAll();
+        }
+
+        async function toggleProxy(id) { const r = await api(`/api/proxies/${id}/toggle`, 'PUT'); if (r) loadAll(); }
+        async function deleteProxy(id) { const r = await api(`/api/proxies/${id}`, 'DELETE'); if (r) loadAll(); }
+
         async function controlVM(id, action) {
-            await api(`/api/vms/${id}/${action}`, 'POST');
-            loadVMs();
+            const result = await api(`/api/vms/${id}/${action}`, 'POST');
+            if (result) loadAll();
         }
 
-        async function createProxy(vmId) {
-            const hostPort = document.getElementById(`host-port-${vmId}`).value;
-            const vmPort = document.getElementById(`vm-port-${vmId}`).value;
-            const res = await api(`/api/proxies?vm_id=${vmId}&host_port=${hostPort}&vm_port=${vmPort}`, 'POST');
-            if (res.detail) alert(res.detail);
-            loadVMs();
+        async function addVM() {
+            const name = document.getElementById('new-vm-name').value;
+            const path = document.getElementById('new-vm-path').value;
+            if (!name || !path) { alert('Please fill in both name and path.'); return; }
+            const result = await api('/api/vms', 'POST', { name, path });
+            if (result) loadAll();
         }
 
-        async function toggleProxy(proxyId) {
-            await api(`/api/proxies/${proxyId}/toggle`, 'PUT');
-            loadVMs();
-        }
-
-        async function deleteProxy(proxyId) {
-            await api(`/api/proxies/${proxyId}`, 'DELETE');
-            loadVMs();
+        async function deleteVM(id) {
+            if (confirm('Unregister this Virtual Machine?')) {
+                const result = await api(`/api/vms/${id}`, 'DELETE');
+                if (result) loadAll();
+            }
         }
 
         async function scanVMs() {
+            const btn = document.getElementById('scan-vms-btn');
+            if (btn) { btn.innerText = 'Analyzing...'; btn.disabled = true; }
+
             const results = await api('/api/vms/scan', 'POST');
             const container = document.getElementById('discovered-list');
             const view = document.getElementById('scan-results');
-            
+
+            if (btn) { btn.innerText = 'Discover VMs'; btn.disabled = false; }
+
             if (results && Array.isArray(results)) {
                 if (results.length > 0) {
                     view.classList.remove('hidden');
                     container.innerHTML = results.map(vm => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; background: #f9f9f9; padding: 10px; border-radius: 4px;">
-                            <span><strong>${vm.name}</strong><br><small>${vm.path}</small></span>
-                            <button class="btn btn-success" onclick="addDiscoveredVM('${vm.name}', '${vm.path.replace(/\\/g, '\\\\')}')">Add</button>
+                        <div class="proxy-item">
+                            <div>
+                                <strong>${escapeHtml(vm.name)}</strong><br>
+                                <span style="font-family: monospace; font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(vm.path)}</span>
+                            </div>
+                            <button class="btn btn-secondary" onclick="addDiscoveredVM('${escapeHtml(vm.name).replace(/'/g, "\\'")}', '${escapeHtml(vm.path).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')">Register</button>
                         </div>
                     `).join('');
-                } else {
-                    alert('No new VMs discovered. They may already be added or not found in known paths.');
-                    view.classList.add('hidden');
-                }
-            } else {
-                alert('Scan failed: ' + (results.detail || 'Unknown error'));
-                view.classList.add('hidden');
+                } else { alert('No new Virtual Machines discovered in expected paths.'); }
             }
         }
 
         async function addDiscoveredVM(name, path) {
-            await api(`/api/vms?name=${encodeURIComponent(name)}&path=${encodeURIComponent(path)}`, 'POST');
-            document.getElementById('scan-results').classList.add('hidden');
-            loadVMs();
-        }
-
-        async function loadRegistry() {
-            const registry = await api('/api/registry');
-            const container = document.getElementById('registry-view');
-            
-            if (registry) {
-                if (registry.active_proxies.length === 0) {
-                    container.innerHTML = '<p>No active port allocations.</p>';
-                } else {
-                    container.innerHTML = `
-                        <table style="font-size: 13px;">
-                            <thead>
-                                <tr>
-                                    <th>Host Port</th>
-                                    <th>VM ID</th>
-                                    <th>VM Port</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${registry.active_proxies.map(p => `
-                                    <tr>
-                                        <td>${p.port}</td>
-                                        <td>${p.vm_id.substring(0, 8)}...</td>
-                                        <td>${p.vm_port}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                        <p><small>Total Used Ports: ${registry.used_ports.length}</small></p>
-                    `;
-                }
+            const result = await api('/api/vms', 'POST', { name, path });
+            if (result) {
+                document.getElementById('scan-results').classList.add('hidden');
+                loadAll();
             }
         }
 
-        function showSettings() {
-            document.getElementById('settings-view').classList.remove('hidden');
-            // Check if current user is admin to show user management
-            // We store permissions in localStorage after login
-            const perms = localStorage.getItem('permissions');
-            if (perms === '*' || perms.includes('user:manage')) {
-                document.getElementById('admin-user-section').classList.remove('hidden');
-            }
+        // --- Port Blocking ---
+
+        async function blockPort() {
+            const port = parseInt(document.getElementById('block-port-num').value);
+            const description = document.getElementById('block-port-desc').value;
+            if (!port) { alert('Please enter a port number.'); return; }
+            const result = await api('/api/registry/block', 'POST', { port, description: description || 'Manual block' });
+            if (result) loadAll();
         }
 
-        function hideSettings() {
-            document.getElementById('settings-view').classList.add('hidden');
+        async function unblockPort(port) {
+            const result = await api(`/api/registry/block/${port}`, 'DELETE');
+            if (result) loadAll();
         }
+
+        // --- Profile ---
 
         async function changePassword() {
             const old_password = document.getElementById('old-pass').value;
             const new_password = document.getElementById('new-pass').value;
-            const res = await api('/api/user/change-password', 'POST', { old_password, new_password });
-            if (res.status === 'success') {
-                alert('Password updated successfully!');
+            if (!old_password || !new_password) { alert('Please fill in both password fields.'); return; }
+            const result = await api('/api/user/change-password', 'POST', { old_password, new_password });
+            if (result) {
+                // Update token if a new one was issued (after forced password change)
+                if (result.access_token) {
+                    token = result.access_token;
+                    localStorage.setItem('token', token);
+                }
+                alert('Security credentials updated successfully.');
                 document.getElementById('old-pass').value = '';
                 document.getElementById('new-pass').value = '';
-            } else {
-                alert('Update failed: ' + (res.detail || 'Unknown error'));
+                document.getElementById('force-change-notice').classList.add('hidden');
+                document.getElementById('cancel-profile-btn').classList.remove('hidden');
             }
         }
+
+        // --- Admin ---
 
         async function createUser() {
             const username = document.getElementById('new-user-name').value;
             const password = document.getElementById('new-user-pass').value;
             const permissions = document.getElementById('new-user-perms').value;
-            const res = await api('/api/users', 'POST', { username, password, permissions });
-            if (res.status === 'success') {
-                alert('User created successfully!');
+            if (!username || !password) { alert('Please fill in username and password.'); return; }
+            const result = await api('/api/users', 'POST', { username, password, permissions });
+            if (result) {
+                alert('Account provisioned successfully.');
                 document.getElementById('new-user-name').value = '';
                 document.getElementById('new-user-pass').value = '';
-            } else {
-                alert('Creation failed: ' + (res.detail || 'Unknown error'));
+                loadUsers();
             }
         }
 
-        if (token) showMain();
+        // --- Init ---
+        if (token) showMain(false);
     </script>
 </body>
 </html>

@@ -10,4 +10,12 @@ wheels/
 .venv
 *.log
 
-vm_manager.db
+# Databases (production + test)
+*.db
+
+# Misc local artifacts
+install.log
+tests/e2e_test.db
+
+# Local IDE / agent config
+.claude/
